@@ -4,10 +4,21 @@ import re
 import subprocess
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse, HTMLResponse
+import torch
+
+# Handle safe loading issues in newer Torch versions
+_original_load = torch.load
+def _patched_load(*args, **kwargs):
+    if 'weights_only' not in kwargs:
+        kwargs['weights_only'] = False
+    return _original_load(*args, **kwargs)
+torch.load = _patched_load
+
+os.environ["COQUI_TOS_AGREED"] = "1"
 
 app = FastAPI()
 
@@ -16,14 +27,29 @@ PIPER_BIN = TTS_ROOT / 'bin/piper'
 PIPER_LIB_DIR = TTS_ROOT / 'bin'
 VOICE_DIR = TTS_ROOT / 'voices'
 OUTPUT_DIR = TTS_ROOT / 'outputs'
+XTTS_ROOT = TTS_ROOT / 'xtts'
+SPEAKER_DIR = XTTS_ROOT / 'speakers'
+
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+SPEAKER_DIR.mkdir(parents=True, exist_ok=True)
+
+# Cache for XTTS model
+XTTS_MODEL = None
+
+def get_xtts_model():
+    global XTTS_MODEL
+    if XTTS_MODEL is None:
+        from TTS.api import TTS
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        XTTS_MODEL = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(device)
+    return XTTS_MODEL
 
 VOICE_LABELS = {
-    'de_DE-thorsten-medium': 'Deutsch - Thorsten medium',
-    'de_DE-kerstin-low': 'Deutsch - Kerstin low',
-    'de_DE-ramona-low': 'Deutsch - Ramona low',
-    'en_US-lessac-medium': 'English - Lessac medium',
-    'en_US-hfc_female-medium': 'English - HFC female medium',
+    'de_DE-thorsten-medium': 'Piper: Deutsch - Thorsten medium',
+    'de_DE-kerstin-low': 'Piper: Deutsch - Kerstin low',
+    'de_DE-ramona-low': 'Piper: Deutsch - Ramona low',
+    'en_US-lessac-medium': 'Piper: English - Lessac medium',
+    'en_US-hfc_female-medium': 'Piper: English - HFC female medium',
 }
 
 HTML = r'''<!doctype html>
@@ -31,7 +57,7 @@ HTML = r'''<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Zen Voice</title>
+  <title>Zen Voice Pro</title>
   <style>
     :root {
       color-scheme: dark;
@@ -73,12 +99,11 @@ HTML = r'''<!doctype html>
     .side { padding: 18px; display: grid; gap: 12px; align-content: center; background: linear-gradient(135deg, rgba(85,214,189,0.09), rgba(246,195,109,0.05)), var(--panel); }
     .eyebrow { color: var(--brand); text-transform: uppercase; letter-spacing: 0.18em; font-size: 12px; font-weight: 800; }
     h1 { margin: 12px 0 14px; font-size: clamp(38px, 5vw, 72px); line-height: 0.95; letter-spacing: 0; }
-    h2, h3 { margin: 0; letter-spacing: 0; }
     p { color: var(--muted); line-height: 1.6; margin: 0; }
-    .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 0.7fr); gap: 14px; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(350px, 0.7fr); gap: 14px; }
     .card { padding: 18px; display: grid; gap: 14px; }
     label { display: grid; gap: 8px; color: var(--muted); font-size: 14px; font-weight: 700; }
-    textarea, select, input[type="range"] { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,0.045); color: var(--text); padding: 12px 14px; font: inherit; }
+    textarea, select, input[type="range"], input[type="text"] { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,0.045); color: var(--text); padding: 12px 14px; font: inherit; }
     textarea { min-height: 220px; resize: vertical; line-height: 1.5; }
     .controls { display: grid; gap: 14px; }
     .sliders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -92,160 +117,239 @@ HTML = r'''<!doctype html>
     audio { width: 100%; }
     .path { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,0.045); color: #c4d1df; overflow-wrap: anywhere; font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px; }
     .badge { display: inline-flex; align-items: center; width: fit-content; padding: 7px 10px; border-radius: 8px; background: rgba(85,214,189,0.13); color: var(--brand); font-size: 13px; font-weight: 800; }
+    .engine-toggle { display: flex; gap: 4px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 10px; border: 1px solid var(--line); }
+    .engine-toggle button { flex: 1; min-height: 32px; border: none; background: transparent; font-size: 12px; }
+    .engine-toggle button.active { background: var(--brand); color: #000; }
     @media (max-width: 900px) { header, .grid, .sliders { grid-template-columns: 1fr; } }
-    @media (max-width: 760px) { .site-menu-inner { align-items: stretch; flex-direction: column; padding: 10px 0; } .site-nav { justify-content: flex-start; } .site-nav a { flex: 1 1 auto; } }
   </style>
 </head>
 <body data-page="voice">
   <div class="site-menu">
     <div class="site-menu-inner">
-      <a class="site-brand" data-nav="hub" href="http://192.168.2.41:8191/">Zen AI Hub</a>
-      <nav class="site-nav" aria-label="Zen AI Hub Navigation">
-        <a data-nav="hub" href="http://192.168.2.41:8191/">Hub</a>
-        <a data-nav="queue" href="http://192.168.2.41:11435/status">GPU Queue</a>
-        <a data-nav="voice" href="http://192.168.2.41:8002/">Voice</a>
-        <a data-nav="whisper" href="http://192.168.2.41:8000/">Whisper</a>
-        <a data-nav="workspace" href="http://192.168.2.41:8001/?workspace=1">Workspace</a>
-        <a data-nav="comfy" href="http://192.168.2.41:8188/" target="_blank" rel="noreferrer">ComfyUI</a>
+      <a class="site-brand" href="/">Zen AI Hub</a>
+      <nav class="site-nav">
+        <a href="/">Hub</a>
+        <a href="/queue">Queue</a>
+        <a data-current="1" href="/voice">Voice</a>
+        <a href="/whisper">Whisper</a>
       </nav>
     </div>
   </div>
-  <script>
-    (() => {
-      const host = window.location.hostname || "192.168.2.41";
-      const urls = { hub: `http://${host}:8191/`, queue: `http://${host}:11435/status`, voice: `http://${host}:8002/`, whisper: `http://${host}:8000/`, workspace: `http://${host}:8001/?workspace=1`, comfy: `http://${host}:8188/` };
-      document.querySelectorAll("[data-nav]").forEach((link) => { const key = link.dataset.nav; if (urls[key]) link.href = urls[key]; });
-      const active = document.body.dataset.page;
-      document.querySelectorAll(`[data-nav="${active}"]`).forEach((link) => { link.dataset.current = "1"; });
-    })();
-  </script>
   <main class="shell">
     <header>
       <section class="panel hero">
-        <div class="eyebrow">Zen Voice</div>
-        <h1>Lokale Sprachausgabe.</h1>
-        <p>Piper TTS laeuft vollstaendig offline auf diesem Ubuntu-System. Texte werden lokal als WAV erzeugt; Cloud-Dienste sind fuer diese Stufe nicht beteiligt.</p>
+        <div class="eyebrow">Zen Voice Pro</div>
+        <h1>Voice AI & Cloning.</h1>
+        <p>Lokale Sprachausgabe mit Piper (CPU-effizient) oder XTTS v2 (GPU-basiertes Cloning). Alles bleibt zu 100% offline auf diesem System.</p>
       </section>
       <aside class="panel side">
-        <span class="badge">Piper offline</span>
-        <p>Naechste Ausbaustufe: XTTS/OpenVoice als GPU-Queue-Job fuer Voice-Cloning mit freigegebenen Referenzaufnahmen.</p>
+        <label>Engine</label>
+        <div class="engine-toggle">
+          <button id="enginePiper" class="active">Piper (Fast)</button>
+          <button id="engineXTTS">XTTS v2 (Clone)</button>
+        </div>
       </aside>
     </header>
     <section class="grid">
       <div class="card">
-        <label>Text<textarea id="textInput">Hallo, das ist eine lokale Piper-Stimme aus dem Zen AI Hub.</textarea></label>
-        <div class="actions"><button class="primary" id="speakBtn">WAV erzeugen</button><button id="clearBtn">Leeren</button></div>
+        <label>Text<textarea id="textInput">Hallo, das ist eine lokale Stimme aus dem Zen AI Hub.</textarea></label>
+        <div class="actions"><button class="primary" id="speakBtn">Audio erzeugen</button><button id="clearBtn">Leeren</button></div>
         <div class="status" id="statusLine">Bereit.</div>
       </div>
       <div class="card controls">
-        <label>Stimme<select id="voiceSelect"></select></label>
-        <div class="sliders">
-          <label>Tempo <span id="lengthValue">1.00</span><input id="lengthScale" type="range" min="0.70" max="1.50" step="0.01" value="1.00"></label>
-          <label>Variation <span id="noiseValue">0.52</span><input id="noiseScale" type="range" min="0.20" max="1.00" step="0.01" value="0.52"></label>
+        <div id="piperControls">
+          <label>Piper Stimme<select id="voiceSelect"></select></label>
+          <div class="sliders">
+            <label>Tempo <span id="lengthValue">1.00</span><input id="lengthScale" type="range" min="0.70" max="1.50" step="0.01" value="1.00"></label>
+            <label>Variation <span id="noiseValue">0.52</span><input id="noiseScale" type="range" min="0.20" max="1.00" step="0.01" value="0.52"></label>
+          </div>
         </div>
-        <div class="result" id="resultBox"><audio id="audioPlayer" controls class="hidden"></audio><a class="button-link hidden" id="downloadLink" href="#" download>Download WAV</a><div class="path" id="outputPath">Noch keine Datei erzeugt.</div></div>
+        <div id="xttsControls" class="hidden">
+          <label>Referenz-Stimme (Clone)<select id="speakerSelect"></select></label>
+          <label>Sprache<select id="langSelect">
+            <option value="de">Deutsch</option>
+            <option value="en">Englisch</option>
+            <option value="es">Spanisch</option>
+            <option value="fr">Franzoesisch</option>
+            <option value="it">Italienisch</option>
+          </select></label>
+          <label>Neue Referenz hochladen (.wav)<input type="file" id="speakerUpload" accept=".wav"></label>
+        </div>
+        <div class="result" id="resultBox"><audio id="audioPlayer" controls class="hidden"></audio><a class="button-link hidden" id="downloadLink" href="#" download>Download</a><div class="path" id="outputPath">Noch keine Datei erzeugt.</div></div>
       </div>
     </section>
   </main>
   <script>
-    const voiceSelect = document.getElementById("voiceSelect");
-    const statusLine = document.getElementById("statusLine");
-    const textInput = document.getElementById("textInput");
-    const lengthScale = document.getElementById("lengthScale");
-    const noiseScale = document.getElementById("noiseScale");
-    const lengthValue = document.getElementById("lengthValue");
-    const noiseValue = document.getElementById("noiseValue");
-    const audioPlayer = document.getElementById("audioPlayer");
-    const downloadLink = document.getElementById("downloadLink");
-    const outputPath = document.getElementById("outputPath");
-    function setStatus(message) { statusLine.textContent = message; }
-    function updateSliderLabels() { lengthValue.textContent = Number(lengthScale.value).toFixed(2); noiseValue.textContent = Number(noiseScale.value).toFixed(2); }
-    lengthScale.addEventListener("input", updateSliderLabels); noiseScale.addEventListener("input", updateSliderLabels); updateSliderLabels();
-    async function api(path, options = {}) { const response = await fetch(path, options); const text = await response.text(); let data = {}; try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; } if (!response.ok) throw new Error(data.detail || data.raw || `HTTP ${response.status}`); return data; }
-    async function loadVoices() { const data = await api('/api/voices'); voiceSelect.innerHTML = data.voices.map((voice) => `<option value="${voice.id}">${voice.label}</option>`).join(''); const preferred = data.voices.find((voice) => voice.id.includes('thorsten')) || data.voices[0]; if (preferred) voiceSelect.value = preferred.id; }
-    async function synthesize(event) { const button = event.currentTarget; const text = textInput.value.trim(); if (!text) return; const oldText = button.textContent; button.disabled = true; button.textContent = 'Erzeuge...'; setStatus('Piper erzeugt lokal eine WAV-Datei...'); try { const data = await api('/api/synthesize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, voice: voiceSelect.value, length_scale: Number(lengthScale.value), noise_scale: Number(noiseScale.value) }) }); audioPlayer.src = data.download_url; audioPlayer.classList.remove('hidden'); downloadLink.href = data.download_url; downloadLink.classList.remove('hidden'); outputPath.textContent = data.output; setStatus(`Fertig: ${data.voice}, ${data.duration_ms} ms.`); } catch (error) { setStatus(`Fehler: ${error.message}`); } finally { button.disabled = false; button.textContent = oldText; } }
-    document.getElementById('speakBtn').addEventListener('click', synthesize);
-    document.getElementById('clearBtn').addEventListener('click', () => { textInput.value = ''; textInput.focus(); });
-    loadVoices().catch((error) => setStatus(`Stimmen konnten nicht geladen werden: ${error.message}`));
+    let currentEngine = 'piper';
+    const elements = {
+        voiceSelect: document.getElementById("voiceSelect"),
+        speakerSelect: document.getElementById("speakerSelect"),
+        statusLine: document.getElementById("statusLine"),
+        textInput: document.getElementById("textInput"),
+        lengthScale: document.getElementById("lengthScale"),
+        noiseScale: document.getElementById("noiseScale"),
+        lengthValue: document.getElementById("lengthValue"),
+        noiseValue: document.getElementById("noiseValue"),
+        audioPlayer: document.getElementById("audioPlayer"),
+        downloadLink: document.getElementById("downloadLink"),
+        outputPath: document.getElementById("outputPath"),
+        piperControls: document.getElementById("piperControls"),
+        xttsControls: document.getElementById("xttsControls"),
+        enginePiper: document.getElementById("enginePiper"),
+        engineXTTS: document.getElementById("engineXTTS"),
+        langSelect: document.getElementById("langSelect"),
+        speakerUpload: document.getElementById("speakerUpload")
+    };
+
+    function setStatus(message) { elements.statusLine.textContent = message; }
+    function updateSliderLabels() { elements.lengthValue.textContent = Number(elements.lengthScale.value).toFixed(2); elements.noiseValue.textContent = Number(elements.noiseScale.value).toFixed(2); }
+    elements.lengthScale.addEventListener("input", updateSliderLabels); elements.noiseScale.addEventListener("input", updateSliderLabels); updateSliderLabels();
+
+    elements.enginePiper.onclick = () => { currentEngine = 'piper'; elements.enginePiper.classList.add('active'); elements.engineXTTS.classList.remove('active'); elements.piperControls.classList.remove('hidden'); elements.xttsControls.classList.add('hidden'); };
+    elements.engineXTTS.onclick = () => { currentEngine = 'xtts'; elements.engineXTTS.classList.add('active'); elements.enginePiper.classList.remove('active'); elements.xttsControls.classList.remove('hidden'); elements.piperControls.classList.add('hidden'); };
+
+    async function api(path, options = {}) { const response = await fetch(path, options); const data = await response.json(); if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`); return data; }
+    
+    async function loadData() {
+        const voices = await api('/api/voices');
+        elements.voiceSelect.innerHTML = voices.voices.map(v => `<option value="${v.id}">${v.label}</option>`).join('');
+        const speakers = await api('/api/speakers');
+        elements.speakerSelect.innerHTML = speakers.speakers.map(s => `<option value="${s}">${s}</option>`).join('');
+    }
+
+    elements.speakerUpload.onchange = async () => {
+        if (!elements.speakerUpload.files.length) return;
+        const file = elements.speakerUpload.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+        setStatus('Lade Referenz hoch...');
+        try {
+            await api('/api/speakers/upload', { method: 'POST', body: formData });
+            await loadData();
+            setStatus('Referenz hochgeladen.');
+        } catch (e) { setStatus(`Upload-Fehler: ${e.message}`); }
+    };
+
+    async function synthesize() {
+        const text = elements.textInput.value.trim();
+        if (!text) return;
+        elements.speakBtn.disabled = true;
+        setStatus('Initialisiere Synthese...');
+        try {
+            const payload = { text, engine: currentEngine };
+            if (currentEngine === 'piper') {
+                payload.voice = elements.voiceSelect.value;
+                payload.length_scale = Number(elements.lengthScale.value);
+                payload.noise_scale = Number(elements.noiseScale.value);
+            } else {
+                payload.speaker = elements.speakerSelect.value;
+                payload.language = elements.langSelect.value;
+            }
+            const data = await api('/api/synthesize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            elements.audioPlayer.src = data.download_url;
+            elements.audioPlayer.classList.remove('hidden');
+            elements.downloadLink.href = data.download_url;
+            elements.downloadLink.classList.remove('hidden');
+            elements.outputPath.textContent = data.output;
+            setStatus(`Fertig (${data.duration_ms}ms)`);
+        } catch (e) { setStatus(`Fehler: ${e.message}`); }
+        finally { elements.speakBtn.disabled = false; }
+    }
+    document.getElementById('speakBtn').onclick = synthesize;
+    loadData().catch(e => setStatus(`Fehler: ${e.message}`));
   </script>
 </body>
 </html>'''
 
-
-def voice_id_from_model(path: Path) -> str:
-    return path.name.removesuffix('.onnx')
-
-
 def voices() -> list[dict[str, Any]]:
     result = []
     for model in sorted(VOICE_DIR.glob('*.onnx')):
-        voice_id = voice_id_from_model(model)
+        voice_id = model.name.removesuffix('.onnx')
         result.append({
             'id': voice_id,
             'label': VOICE_LABELS.get(voice_id, voice_id),
             'model': str(model),
-            'config': str(model) + '.json',
-            'language': voice_id.split('-', 1)[0],
         })
     return result
-
-
-def safe_slug(value: str) -> str:
-    slug = re.sub(r'[^a-zA-Z0-9_-]+', '_', value).strip('_')
-    return slug[:48] or 'voice'
-
 
 @app.get('/', response_class=HTMLResponse)
 def index() -> str:
     return HTML
 
-
 @app.get('/api/voices')
 def list_voices() -> dict[str, Any]:
-    found = voices()
-    if not found:
-        raise HTTPException(status_code=500, detail=f'Keine Piper-Stimmen in {VOICE_DIR} gefunden.')
-    return {'status': 'ok', 'voices': found}
+    return {'voices': voices()}
 
+@app.get('/api/speakers')
+def list_speakers() -> dict[str, Any]:
+    return {'speakers': [s.name for s in sorted(SPEAKER_DIR.glob('*.wav'))]}
+
+@app.post('/api/speakers/upload')
+async def upload_speaker(file: UploadFile = File(...)):
+    if not file.filename.endswith('.wav'):
+        raise HTTPException(status_code=400, detail="Nur .wav Dateien erlaubt.")
+    path = SPEAKER_DIR / file.filename
+    with open(path, "wb") as buffer:
+        buffer.write(await file.read())
+    return {"status": "ok", "filename": file.filename}
 
 @app.post('/api/synthesize')
 def synthesize(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
     text = str(payload.get('text') or '').strip()
-    if not text:
-        raise HTTPException(status_code=400, detail='Text fehlt.')
-    voice = str(payload.get('voice') or 'de_DE-thorsten-medium')
-    available = {entry['id']: entry for entry in voices()}
-    if voice not in available:
-        raise HTTPException(status_code=400, detail=f'Unbekannte Stimme: {voice}')
-    if not PIPER_BIN.exists():
-        raise HTTPException(status_code=500, detail=f'Piper fehlt: {PIPER_BIN}')
-    length_scale = float(payload.get('length_scale') or 1.0)
-    noise_scale = float(payload.get('noise_scale') or 0.52)
-    noise_w = float(payload.get('noise_w') or 0.55)
-    sentence_silence = float(payload.get('sentence_silence') or 0.35)
+    engine = str(payload.get('engine') or 'piper')
     stamp = time.strftime('%Y%m%d-%H%M%S')
-    out = OUTPUT_DIR / f'{stamp}-{safe_slug(voice)}.wav'
-    env = os.environ.copy()
-    env['LD_LIBRARY_PATH'] = f'{PIPER_LIB_DIR}:{env.get("LD_LIBRARY_PATH", "")}'
-    cmd = [str(PIPER_BIN), '--model', available[voice]['model'], '--output_file', str(out), '--length_scale', str(length_scale), '--noise_scale', str(noise_scale), '--noise_w', str(noise_w), '--sentence_silence', str(sentence_silence), '--quiet']
-    started = time.time()
-    proc = subprocess.run(cmd, input=text, capture_output=True, text=True, env=env, timeout=300)
-    duration_ms = round((time.time() - started) * 1000)
-    if proc.returncode != 0:
-        raise HTTPException(status_code=500, detail=proc.stderr.strip() or proc.stdout.strip() or 'Piper fehlgeschlagen.')
-    return {'status': 'ok', 'engine': 'piper', 'voice': voice, 'output': str(out), 'download_url': f'/api/audio/{out.name}', 'duration_ms': duration_ms}
+    
+    if engine == 'piper':
+        voice = str(payload.get('voice') or 'de_DE-thorsten-medium')
+        available = {v['id']: v for v in voices()}
+        if voice not in available:
+            raise HTTPException(status_code=400, detail=f'Unbekannte Stimme: {voice}')
+        out = OUTPUT_DIR / f'{stamp}-piper-{voice}.wav'
+        length_scale = float(payload.get('length_scale') or 1.0)
+        noise_scale = float(payload.get('noise_scale') or 0.52)
+        env = os.environ.copy()
+        env['LD_LIBRARY_PATH'] = f'{PIPER_LIB_DIR}:{env.get("LD_LIBRARY_PATH", "")}'
+        cmd = [str(PIPER_BIN), '--model', available[voice]['model'], '--output_file', str(out), '--length_scale', str(length_scale), '--noise_scale', str(noise_scale), '--quiet']
+        started = time.time()
+        proc = subprocess.run(cmd, input=text, capture_output=True, text=True, env=env, timeout=60)
+        duration_ms = round((time.time() - started) * 1000)
+        if proc.returncode != 0:
+            raise HTTPException(status_code=500, detail=proc.stderr.strip() or 'Piper Error')
+    
+    elif engine == 'xtts':
+        speaker = str(payload.get('speaker') or '')
+        if not speaker:
+            raise HTTPException(status_code=400, detail='Referenz-Stimme fehlt.')
+        speaker_path = SPEAKER_DIR / speaker
+        if not speaker_path.exists():
+            raise HTTPException(status_code=404, detail='Referenz-Datei nicht gefunden.')
+        
+        language = str(payload.get('language') or 'de')
+        out = OUTPUT_DIR / f'{stamp}-xtts-{speaker.replace(".wav", "")}.wav'
+        
+        started = time.time()
+        model = get_xtts_model()
+        model.tts_to_file(text=text, speaker_wav=str(speaker_path), language=language, file_path=str(out))
+        duration_ms = round((time.time() - started) * 1000)
+    
+    else:
+        raise HTTPException(status_code=400, detail=f'Unbekannte Engine: {engine}')
 
+    return {
+        'status': 'ok',
+        'engine': engine,
+        'output': str(out),
+        'download_url': f'/api/audio/{out.name}',
+        'duration_ms': duration_ms
+    }
 
 @app.get('/api/audio/{name}')
 def audio(name: str) -> FileResponse:
-    if '/' in name or '..' in name:
-        raise HTTPException(status_code=400, detail='Ungueltiger Dateiname.')
     path = OUTPUT_DIR / name
     if not path.exists():
         raise HTTPException(status_code=404, detail='Datei nicht gefunden.')
-    return FileResponse(path, media_type='audio/wav', filename=name)
+    return FileResponse(path, media_type='audio/wav')
 
-
-@app.get('/api/status')
-def status() -> dict[str, Any]:
-    return {'status': 'ok', 'engine': 'piper', 'piper': str(PIPER_BIN), 'voices': len(voices()), 'output_dir': str(OUTPUT_DIR)}
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8002)
