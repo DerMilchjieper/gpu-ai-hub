@@ -597,6 +597,9 @@
       <a class="site-brand" data-nav="hub" href="http://192.168.2.41:8191/">Zen AI Hub</a>
       <nav class="site-nav" aria-label="Zen AI Hub Navigation">
         <a data-nav="hub" href="http://192.168.2.41:8191/">Hub</a>
+        <a data-nav="gallery" href="http://192.168.2.41:8009/">Gallery</a>
+        <a data-nav="audio" href="http://192.168.2.41:8010/">Audio</a>
+        <a data-nav="system" href="http://192.168.2.41:8008/">System</a>
         <a data-nav="queue" href="http://192.168.2.41:11435/status">GPU Queue</a>
         <a data-nav="vision" href="http://192.168.2.41:8003/">Vision</a>
         <a data-nav="voice" href="http://192.168.2.41:8002/">Voice Pro</a>
@@ -617,6 +620,9 @@
       const urls = {
         hub: `http://${host}:8191/`,
         queue: `http://${host}:11435/status`,
+        gallery: `http://${host}:8009/`,
+        system: `http://${host}:8008/`,
+        audio: `http://${host}:8010/`,
         vision: `http://${host}:8003/`,
         voice: `http://${host}:8002/`,
         docs: `http://${host}:8004/`,
@@ -652,6 +658,7 @@
           <a class="button" id="visionLink" href="http://192.168.2.41:8003" target="_blank" rel="noreferrer">Vision oeffnen</a>
           <a class="button" id="voiceLink" href="http://192.168.2.41:8002" target="_blank" rel="noreferrer">Voice Pro oeffnen</a>
           <a class="button" id="videoLink" href="http://192.168.2.41:8005" target="_blank" rel="noreferrer">Video Lab oeffnen</a>
+          <a class="button" id="audioLink" href="http://192.168.2.41:8010" target="_blank" rel="noreferrer">Audio oeffnen</a>
           <a class="button" id="autoLink" href="http://192.168.2.41:8007" target="_blank" rel="noreferrer">Automator oeffnen</a>
           <a class="button" id="n8nLink" href="http://192.168.2.41:5678" target="_blank" rel="noreferrer">n8n Automatisierung</a>
           <a class="button" id="whisperLink" href="http://192.168.2.41:8000" target="_blank" rel="noreferrer">Whisper oeffnen</a>
@@ -775,6 +782,22 @@
         <div class="actions">
           <a class="button" id="voicePortalLink" href="http://192.168.2.41:8002" target="_blank" rel="noreferrer">Voice Pro oeffnen</a>
           <button class="button secondary" data-copy="http://192.168.2.41:8002/api/synthesize">API kopieren</button>
+        </div>
+      </article>
+
+      <article class="card" data-accent="blue">
+        <div>
+          <h2>Audio Gen</h2>
+          <p class="tagline">Lokale Musik-Generierung mit MusicGen. Erzeuge hochwertige Audio-Tracks und Sound-Effekte aus Text-Beschreibungen.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Engine</span><span>MusicGen</span></div>
+          <div class="fact"><span>Port</span><span>8010</span></div>
+          <div class="fact"><span>Modelle</span><span>Small / Medium</span></div>
+          <div class="fact"><span>GPU</span><span>Queue-gesteuert</span></div>
+        </div>
+        <div class="actions">
+          <a class="button" id="audioPortalLink" href="http://192.168.2.41:8010" target="_blank" rel="noreferrer">Audio oeffnen</a>
         </div>
       </article>
 

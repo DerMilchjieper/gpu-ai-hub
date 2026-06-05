@@ -19,6 +19,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 MEDIA_SOURCES = {
     "images": Path("/home/wizzard/ai/comfy_output"),
     "voice": Path("/home/wizzard/ai/tts/outputs"),
+    "music": Path("/home/wizzard/ai/audio_gen/outputs"),
     "video": Path("/home/wizzard/ai/video/outputs"),
     "texts": Path("/home/wizzard/transcripts")
 }
@@ -170,6 +171,7 @@ HTML = r'''<!doctype html>
                 <div class="badge active" data-type="all">Alle</div>
                 <div class="badge" data-type="images">Bilder</div>
                 <div class="badge" data-type="video">Videos</div>
+                <div class="badge" data-type="music">Musik</div>
                 <div class="badge" data-type="voice">Stimmen</div>
                 <div class="badge" data-type="texts">Transkripte</div>
             </div>
@@ -203,6 +205,7 @@ HTML = r'''<!doctype html>
             if(m.category === 'images') preview = `<img src="/media/images/${m.name}" loading="lazy">`;
             else if(m.category === 'video') preview = `<video src="/media/video/${m.name}" muted onmouseover="this.play()" onmouseout="this.pause()"></video>`;
             else if(m.category === 'voice') preview = `<div style="font-size:32px;">🔊</div>`;
+            else if(m.category === 'music') preview = `<div style="font-size:32px;">🎵</div>`;
             else preview = `<div style="font-size:32px;">📄</div>`;
 
             return `

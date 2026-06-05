@@ -91,6 +91,8 @@ HTML = r'''<!doctype html>
         <a data-nav="queue" href="http://192.168.2.41:11435/status">GPU Queue</a>
         <a data-nav="vision" href="http://192.168.2.41:8003/">Vision</a>
         <a data-nav="voice" href="http://192.168.2.41:8002/">Voice Pro</a>
+        <a data-nav="docs" href="http://192.168.2.41:8004/">Docs</a>
+        <a data-nav="video" href="http://192.168.2.41:8005/">Video Lab</a>
         <a data-nav="whisper" href="http://192.168.2.41:8000/">Whisper</a>
         <a data-nav="workspace" href="http://192.168.2.41:8001/?workspace=1">Workspace</a>
         <a data-nav="comfy" href="http://192.168.2.41:8188/" target="_blank" rel="noreferrer">ComfyUI</a>
@@ -100,7 +102,7 @@ HTML = r'''<!doctype html>
   <script>
     (() => {
       const host = window.location.hostname || "192.168.2.41";
-      const urls = { hub: `http://${host}:8191/`, queue: `http://${host}:11435/status`, vision: `http://${host}:8003/`, voice: `http://${host}:8002/`, whisper: `http://${host}:8000/`, workspace: `http://${host}:8001/?workspace=1`, comfy: `http://${host}:8188/` };
+      const urls = { hub: `http://${host}:8191/`, queue: `http://${host}:11435/status`, vision: `http://${host}:8003/`, voice: `http://${host}:8002/`, docs: `http://${host}:8004/`, video: `http://${host}:8005/`, whisper: `http://${host}:8000/`, workspace: `http://${host}:8001/?workspace=1`, comfy: `http://${host}:8188/` };
       document.querySelectorAll("[data-nav]").forEach((link) => { const key = link.dataset.nav; if (urls[key]) link.href = urls[key]; });
       const active = document.body.dataset.page;
       document.querySelectorAll(`[data-nav="${active}"]`).forEach((link) => { link.dataset.current = "1"; });
