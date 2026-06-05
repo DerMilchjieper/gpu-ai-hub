@@ -120,6 +120,9 @@ HTML = r'''<!doctype html>
     .engine-toggle { display: flex; gap: 4px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 10px; border: 1px solid var(--line); }
     .engine-toggle button { flex: 1; min-height: 32px; border: none; background: transparent; font-size: 12px; }
     .engine-toggle button.active { background: var(--brand); color: #000; }
+    .advanced-toggle { margin-top: 10px; color: var(--brand); font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 700; opacity: 0.8; }
+    .advanced-toggle:hover { opacity: 1; }
+    .advanced-panel { margin-top: 12px; padding: 14px; border-top: 1px solid var(--line); background: rgba(0,0,0,0.15); border-radius: 8px; display: grid; gap: 12px; }
     @media (max-width: 900px) { header, .grid, .sliders { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -183,8 +186,39 @@ HTML = r'''<!doctype html>
             <option value="es">Spanisch</option>
             <option value="fr">Franzoesisch</option>
             <option value="it">Italienisch</option>
+            <option value="pt">Portugiesisch</option>
+            <option value="pl">Polnisch</option>
+            <option value="tr">Tuerkisch</option>
+            <option value="ru">Russisch</option>
+            <option value="nl">Niederlaendisch</option>
+            <option value="cs">Tschechisch</option>
+            <option value="ar">Arabisch</option>
+            <option value="zh-cn">Chinesisch</option>
+            <option value="hu">Ungarisch</option>
+            <option value="ko">Koreanisch</option>
+            <option value="hi">Hindi</option>
           </select></label>
           <label>Neue Referenz hochladen (.wav)<input type="file" id="speakerUpload" accept=".wav"></label>
+        </div>
+
+        <div class="advanced-toggle" id="advToggle"><span>▶</span> Erweiterte Parameter (Pro)</div>
+        <div class="advanced-panel hidden" id="advPanel">
+          <div id="piperAdv">
+            <div class="sliders">
+              <label>Phonem-Breite <span id="noiseWValue">0.55</span><input id="noiseW" type="range" min="0.10" max="1.00" step="0.01" value="0.55"></label>
+              <label>Satzpause <span id="silenceValue">0.35</span><input id="silence" type="range" min="0.00" max="1.00" step="0.01" value="0.35"></label>
+            </div>
+          </div>
+          <div id="xttsAdv" class="hidden">
+            <div class="sliders">
+              <label>Temperature <span id="tempValue">0.75</span><input id="temp" type="range" min="0.01" max="1.00" step="0.01" value="0.75"></label>
+              <label>Speed <span id="speedValue">1.00</span><input id="speed" type="range" min="0.50" max="2.00" step="0.01" value="1.00"></label>
+              <label>Length Penalty <span id="lpValue">1.00</span><input id="lengthPenalty" type="range" min="-10.00" max="10.00" step="0.10" value="1.00"></label>
+              <label>Repetition Penalty <span id="rpValue">2.00</span><input id="repPenalty" type="range" min="1.00" max="10.00" step="0.10" value="2.00"></label>
+              <label>Top K <span id="tkValue">50</span><input id="topK" type="range" min="1" max="100" step="1" value="50"></label>
+              <label>Top P <span id="tpValue">0.85</span><input id="topP" type="range" min="0.05" max="1.00" step="0.01" value="0.85"></label>
+            </div>
+          </div>
         </div>
         <div class="result" id="resultBox"><audio id="audioPlayer" controls class="hidden"></audio><a class="button-link hidden" id="downloadLink" href="#" download>Download</a><div class="path" id="outputPath">Noch keine Datei erzeugt.</div></div>
       </div>
@@ -210,26 +244,54 @@ HTML = r'''<!doctype html>
         engineXTTS: document.getElementById("engineXTTS"),
         langSelect: document.getElementById("langSelect"),
         speakerUpload: document.getElementById("speakerUpload"),
-        speakBtn: document.getElementById("speakBtn")
+        speakBtn: document.getElementById("speakBtn"),
+        advToggle: document.getElementById("advToggle"),
+        advPanel: document.getElementById("advPanel"),
+        piperAdv: document.getElementById("piperAdv"),
+        xttsAdv: document.getElementById("xttsAdv"),
+        noiseW: document.getElementById("noiseW"),
+        silence: document.getElementById("silence"),
+        temp: document.getElementById("temp"),
+        speed: document.getElementById("speed"),
+        lengthPenalty: document.getElementById("lengthPenalty"),
+        repPenalty: document.getElementById("repPenalty"),
+        topK: document.getElementById("topK"),
+        topP: document.getElementById("topP")
     };
 
     function setStatus(message) { elements.statusLine.textContent = message; }
-    function updateSliderLabels() { elements.lengthValue.textContent = Number(elements.lengthScale.value).toFixed(2); elements.noiseValue.textContent = Number(elements.noiseScale.value).toFixed(2); }
-    elements.lengthScale.addEventListener("input", updateSliderLabels); elements.noiseScale.addEventListener("input", updateSliderLabels); updateSliderLabels();
+    
+    function updateLabels() {
+        document.querySelectorAll('input[type="range"]').forEach(input => {
+            const span = input.parentElement.querySelector('span');
+            if (span) span.textContent = Number(input.value).toFixed(input.id === 'topK' ? 0 : 2);
+        });
+    }
+    document.querySelectorAll('input[type="range"]').forEach(input => input.addEventListener("input", updateLabels));
+    updateLabels();
+
+    elements.advToggle.onclick = () => {
+        const isHidden = elements.advPanel.classList.toggle('hidden');
+        elements.advToggle.querySelector('span').textContent = isHidden ? '▶' : '▼';
+    };
 
     elements.enginePiper.onclick = () => { 
         currentEngine = 'piper'; 
         elements.enginePiper.classList.add('active'); 
         elements.engineXTTS.classList.remove('active'); 
         elements.piperControls.classList.remove('hidden'); 
-        elements.xttsControls.classList.add('hidden'); 
+        elements.xttsControls.classList.add('hidden');
+        elements.piperAdv.classList.remove('hidden');
+        elements.xttsAdv.classList.add('hidden');
     };
     elements.engineXTTS.onclick = () => { 
         currentEngine = 'xtts'; 
         elements.engineXTTS.classList.add('active'); 
         elements.enginePiper.classList.remove('active'); 
         elements.xttsControls.classList.remove('hidden'); 
-        elements.piperControls.classList.add('hidden'); 
+        elements.piperControls.classList.add('hidden');
+        elements.xttsAdv.classList.remove('hidden');
+        elements.piperAdv.classList.add('hidden');
     };
 
     async function api(path, options = {}) { const response = await fetch(path, options); const data = await response.json(); if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`); return data; }
@@ -265,9 +327,17 @@ HTML = r'''<!doctype html>
                 payload.voice = elements.voiceSelect.value;
                 payload.length_scale = Number(elements.lengthScale.value);
                 payload.noise_scale = Number(elements.noiseScale.value);
+                payload.noise_w = Number(elements.noiseW.value);
+                payload.sentence_silence = Number(elements.silence.value);
             } else {
                 payload.speaker = elements.speakerSelect.value;
                 payload.language = elements.langSelect.value;
+                payload.temperature = Number(elements.temp.value);
+                payload.speed = Number(elements.speed.value);
+                payload.length_penalty = Number(elements.lengthPenalty.value);
+                payload.repetition_penalty = Number(elements.repPenalty.value);
+                payload.top_k = parseInt(elements.topK.value);
+                payload.top_p = Number(elements.topP.value);
             }
             const data = await api('/api/synthesize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             elements.audioPlayer.src = data.download_url;
@@ -331,9 +401,12 @@ def synthesize(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
         out = OUTPUT_DIR / f'{stamp}-piper-{voice}.wav'
         length_scale = float(payload.get('length_scale') or 1.0)
         noise_scale = float(payload.get('noise_scale') or 0.52)
+        noise_w = float(payload.get('noise_w') or 0.55)
+        sentence_silence = float(payload.get('sentence_silence') or 0.35)
+        
         env = os.environ.copy()
         env['LD_LIBRARY_PATH'] = f'{PIPER_LIB_DIR}:{env.get("LD_LIBRARY_PATH", "")}'
-        cmd = [str(PIPER_BIN), '--model', available[voice]['model'], '--output_file', str(out), '--length_scale', str(length_scale), '--noise_scale', str(noise_scale), '--quiet']
+        cmd = [str(PIPER_BIN), '--model', available[voice]['model'], '--output_file', str(out), '--length_scale', str(length_scale), '--noise_scale', str(noise_scale), '--noise_w', str(noise_w), '--sentence_silence', str(sentence_silence), '--quiet']
         started = time.time()
         proc = subprocess.run(cmd, input=text, capture_output=True, text=True, env=env, timeout=60)
         duration_ms = round((time.time() - started) * 1000)
@@ -351,9 +424,28 @@ def synthesize(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
         language = str(payload.get('language') or 'de')
         out = OUTPUT_DIR / f'{stamp}-xtts-{speaker.replace(".wav", "")}.wav'
         
+        # Advanced Params
+        temperature = float(payload.get('temperature', 0.75))
+        speed = float(payload.get('speed', 1.0))
+        length_penalty = float(payload.get('length_penalty', 1.0))
+        repetition_penalty = float(payload.get('repetition_penalty', 2.0))
+        top_k = int(payload.get('top_k', 50))
+        top_p = float(payload.get('top_p', 0.85))
+
         started = time.time()
         model = get_xtts_model()
-        model.tts_to_file(text=text, speaker_wav=str(speaker_path), language=language, file_path=str(out))
+        model.tts_to_file(
+            text=text, 
+            speaker_wav=str(speaker_path), 
+            language=language, 
+            file_path=str(out),
+            temperature=temperature,
+            speed=speed,
+            length_penalty=length_penalty,
+            repetition_penalty=repetition_penalty,
+            top_k=top_k,
+            top_p=top_p
+        )
         duration_ms = round((time.time() - started) * 1000)
     
     else:
