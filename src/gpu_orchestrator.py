@@ -211,6 +211,119 @@ def complete_record(job: Job, status: str) -> dict[str, Any]:
     }
 
 
+def status_payload() -> dict[str, Any]:
+    with STATE_LOCK:
+        return {
+            "status": "ok",
+            "gpu": gpu_snapshot(),
+            "queue_depth": WORK_QUEUE.qsize(),
+            "current_job": CURRENT_JOB,
+            "completed_recent": COMPLETED[:10],
+            "targets": TARGETS,
+            "min_free_mib": MIN_FREE_MIB,
+            "strict_ollama_gpu": STRICT_OLLAMA_GPU,
+        }
+
+
+DASHBOARD_HTML = r"""<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GPU Orchestrator</title>
+  <style>
+    :root { color-scheme: dark; --bg:#081018; --panel:#101a26; --line:#26384a; --text:#eaf2ff; --muted:#9db0c4; --ok:#5ee0b7; --warn:#ffca75; --bad:#ff7b7b; }
+    * { box-sizing: border-box; }
+    body { margin:0; min-height:100vh; font-family:Inter,Segoe UI,sans-serif; color:var(--text); background:linear-gradient(180deg,#081018,#05080c); }
+    main { width:min(1180px, calc(100vw - 32px)); margin:0 auto; padding:28px 0 42px; }
+    header { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; margin-bottom:18px; }
+    h1 { margin:0; font-size:clamp(34px,5vw,58px); letter-spacing:-0.03em; }
+    .sub { color:var(--muted); margin:8px 0 0; max-width:70ch; line-height:1.5; }
+    .grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:18px 0; }
+    .card, table { border:1px solid var(--line); background:rgba(16,26,38,.92); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.28); }
+    .card { padding:16px; min-height:110px; }
+    .label { color:var(--muted); font-size:13px; }
+    .value { font-size:28px; font-weight:800; margin-top:8px; overflow-wrap:anywhere; }
+    .ok { color:var(--ok); } .warn { color:var(--warn); } .bad { color:var(--bad); }
+    .bar { height:14px; border-radius:999px; background:#1c2b3b; overflow:hidden; margin-top:12px; border:1px solid rgba(255,255,255,.08); }
+    .fill { height:100%; width:0%; background:linear-gradient(90deg,var(--ok),var(--warn)); transition:width .2s ease; }
+    section { margin-top:18px; }
+    h2 { font-size:18px; margin:0 0 10px; }
+    table { width:100%; border-collapse:collapse; overflow:hidden; }
+    th,td { padding:11px 12px; text-align:left; border-bottom:1px solid rgba(255,255,255,.07); font-size:14px; vertical-align:top; }
+    th { color:var(--muted); font-weight:700; }
+    tr:last-child td { border-bottom:0; }
+    code { color:#bde7ff; }
+    .pill { display:inline-flex; padding:6px 10px; border-radius:999px; background:#18283a; border:1px solid var(--line); color:var(--muted); font-size:13px; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    a, button { color:var(--text); background:#17283a; border:1px solid var(--line); border-radius:10px; padding:10px 12px; text-decoration:none; font:inherit; cursor:pointer; }
+    @media (max-width:900px) { header { flex-direction:column; } .grid { grid-template-columns:1fr 1fr; } .actions { justify-content:flex-start; } }
+    @media (max-width:560px) { .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>GPU Orchestrator</h1>
+      <p class="sub">Live-Status fuer die lokale GPU-Queue. KI-Jobs laufen FIFO und sollen warten statt auf CPU auszuweichen.</p>
+    </div>
+    <div class="actions">
+      <a href="/api/status">JSON</a>
+      <button id="refreshBtn">Aktualisieren</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="card"><div class="label">GPU</div><div class="value" id="gpuName">-</div><div class="label" id="driverState"></div></div>
+    <div class="card"><div class="label">VRAM frei</div><div class="value" id="vramFree">-</div><div class="bar"><div class="fill" id="vramFill"></div></div></div>
+    <div class="card"><div class="label">GPU Last</div><div class="value" id="gpuUtil">-</div><div class="bar"><div class="fill" id="utilFill"></div></div></div>
+    <div class="card"><div class="label">Queue</div><div class="value" id="queueDepth">-</div><div class="label" id="currentJob">kein aktiver Job</div></div>
+  </div>
+
+  <section>
+    <h2>Routen</h2>
+    <table><tbody id="routes"></tbody></table>
+  </section>
+
+  <section>
+    <h2>Letzte Jobs</h2>
+    <table><thead><tr><th>Status</th><th>Service</th><th>Pfad</th><th>Warten</th><th>Laufzeit</th><th>Fehler</th></tr></thead><tbody id="jobs"></tbody></table>
+  </section>
+</main>
+<script>
+  const fmt = new Intl.NumberFormat('de-DE');
+  function setText(id, value) { document.getElementById(id).textContent = value; }
+  function row(cells) { return `<tr>${cells.map((c) => `<td>${c}</td>`).join('')}</tr>`; }
+  async function refresh() {
+    const response = await fetch('/api/status');
+    const data = await response.json();
+    const gpu = data.gpu || {};
+    const used = gpu.memory_used_mib || 0;
+    const total = gpu.memory_total_mib || 0;
+    const free = gpu.memory_free_mib || 0;
+    const usedPct = total ? Math.round(used / total * 100) : 0;
+    setText('gpuName', gpu.ok ? gpu.name : 'GPU Fehler');
+    document.getElementById('gpuName').className = `value ${gpu.ok ? 'ok' : 'bad'}`;
+    setText('driverState', gpu.ok ? `Index ${gpu.index}, ${fmt.format(total)} MiB total` : (gpu.error || 'nvidia-smi nicht verfuegbar'));
+    setText('vramFree', total ? `${fmt.format(free)} MiB` : '-');
+    document.getElementById('vramFill').style.width = `${usedPct}%`;
+    setText('gpuUtil', gpu.ok ? `${gpu.utilization_gpu_pct}%` : '-');
+    document.getElementById('utilFill').style.width = `${gpu.utilization_gpu_pct || 0}%`;
+    setText('queueDepth', data.queue_depth ?? 0);
+    setText('currentJob', data.current_job ? `${data.current_job.service} ${data.current_job.status}` : 'kein aktiver Job');
+    document.getElementById('routes').innerHTML = Object.entries(data.targets || {}).map(([name, url]) => row([`<span class="pill">${name}</span>`, `<code>${url}</code>`, `${data.min_free_mib?.[name] || '-'} MiB min. frei`])).join('');
+    const jobs = data.completed_recent || [];
+    document.getElementById('jobs').innerHTML = jobs.length ? jobs.map((job) => row([job.status, job.service, `<code>${job.path}</code>`, `${job.wait_sec ?? '-'}s`, `${job.run_sec ?? '-'}s`, job.error || ''])).join('') : row(['-', '-', 'Noch keine Jobs seit Service-Start', '-', '-', '']);
+  }
+  document.getElementById('refreshBtn').addEventListener('click', refresh);
+  refresh();
+  setInterval(refresh, 3000);
+</script>
+</body>
+</html>"""
+
+
 def worker() -> None:
     global CURRENT_JOB
     while True:
@@ -266,19 +379,17 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         split = urlsplit(self.path)
-        if split.path in {"/", "/healthz", "/status"}:
-            with STATE_LOCK:
-                payload = {
-                    "status": "ok",
-                    "gpu": gpu_snapshot(),
-                    "queue_depth": WORK_QUEUE.qsize(),
-                    "current_job": CURRENT_JOB,
-                    "completed_recent": COMPLETED[:10],
-                    "targets": TARGETS,
-                    "min_free_mib": MIN_FREE_MIB,
-                    "strict_ollama_gpu": STRICT_OLLAMA_GPU,
-                }
-            self._json(200, payload)
+        if split.path in {"/", "/status"}:
+            body = DASHBOARD_HTML.encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self._cors()
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if split.path in {"/healthz", "/api/status"}:
+            self._json(200, status_payload())
             return
         service, upstream_path = classify(split.path)
         if not service:

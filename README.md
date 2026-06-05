@@ -16,7 +16,7 @@ Default local layout:
 
 | Service | Direct Port | Queued Route |
 | --- | ---: | --- |
-| GPU Orchestrator | `11435` | `http://HOST:11435/status` |
+| GPU Orchestrator | `11435` | `http://HOST:11435/status` dashboard, `http://HOST:11435/api/status` JSON |
 | Ollama | `11434` | `http://HOST:11435/api/generate` and `/api/chat` |
 | Whisper | `8001` | `http://HOST:11435/whisper/api/...` |
 | ComfyUI | `8188` | `http://HOST:11435/comfy/...` for HTTP API clients |
@@ -41,7 +41,7 @@ Whisper should be configured with CPU fallback disabled. In the companion local 
 ```bash
 ./install-user-service.sh
 systemctl --user status gpu-orchestrator.service --no-pager
-curl http://127.0.0.1:11435/status
+curl http://127.0.0.1:11435/api/status
 ```
 
 ## Environment
