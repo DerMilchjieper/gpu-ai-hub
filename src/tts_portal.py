@@ -209,15 +209,28 @@ HTML = r'''<!doctype html>
         enginePiper: document.getElementById("enginePiper"),
         engineXTTS: document.getElementById("engineXTTS"),
         langSelect: document.getElementById("langSelect"),
-        speakerUpload: document.getElementById("speakerUpload")
+        speakerUpload: document.getElementById("speakerUpload"),
+        speakBtn: document.getElementById("speakBtn")
     };
 
     function setStatus(message) { elements.statusLine.textContent = message; }
     function updateSliderLabels() { elements.lengthValue.textContent = Number(elements.lengthScale.value).toFixed(2); elements.noiseValue.textContent = Number(elements.noiseScale.value).toFixed(2); }
     elements.lengthScale.addEventListener("input", updateSliderLabels); elements.noiseScale.addEventListener("input", updateSliderLabels); updateSliderLabels();
 
-    elements.enginePiper.onclick = () => { currentEngine = 'piper'; elements.enginePiper.classList.add('active'); elements.engineXTTS.classList.remove('active'); elements.piperControls.classList.remove('hidden'); elements.xttsControls.classList.add('hidden'); };
-    elements.engineXTTS.onclick = () => { currentEngine = 'xtts'; elements.engineXTTS.classList.add('active'); elements.enginePiper.classList.remove('active'); elements.xttsControls.classList.remove('hidden'); elements.piperControls.classList.add('hidden'); };
+    elements.enginePiper.onclick = () => { 
+        currentEngine = 'piper'; 
+        elements.enginePiper.classList.add('active'); 
+        elements.engineXTTS.classList.remove('active'); 
+        elements.piperControls.classList.remove('hidden'); 
+        elements.xttsControls.classList.add('hidden'); 
+    };
+    elements.engineXTTS.onclick = () => { 
+        currentEngine = 'xtts'; 
+        elements.engineXTTS.classList.add('active'); 
+        elements.enginePiper.classList.remove('active'); 
+        elements.xttsControls.classList.remove('hidden'); 
+        elements.piperControls.classList.add('hidden'); 
+    };
 
     async function api(path, options = {}) { const response = await fetch(path, options); const data = await response.json(); if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`); return data; }
     
