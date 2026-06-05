@@ -598,6 +598,7 @@
       <nav class="site-nav" aria-label="Zen AI Hub Navigation">
         <a data-nav="hub" href="http://192.168.2.41:8191/">Hub</a>
         <a data-nav="queue" href="http://192.168.2.41:11435/status">GPU Queue</a>
+        <a data-nav="vision" href="http://192.168.2.41:8003/">Vision</a>
         <a data-nav="voice" href="http://192.168.2.41:8002/">Voice Pro</a>
         <a data-nav="whisper" href="http://192.168.2.41:8000/">Whisper</a>
         <a data-nav="workspace" href="http://192.168.2.41:8001/?workspace=1">Workspace</a>
@@ -611,6 +612,7 @@
       const urls = {
         hub: `http://${host}:8191/`,
         queue: `http://${host}:11435/status`,
+        vision: `http://${host}:8003/`,
         voice: `http://${host}:8002/`,
         whisper: `http://${host}:8000/`,
         workspace: `http://${host}:8001/?workspace=1`,
@@ -635,6 +637,7 @@
         <p class="lede">Zentrale Startseite fuer lokale KI-Jobs auf der RTX 3090: GPU-Queue, Ollama, Whisper und ComfyUI-Workflows. Schwere Jobs sollen ueber den Orchestrator laufen, damit nichts still auf CPU ausweicht.</p>
         <div class="hero-actions">
           <a class="button js-comfy-link" href="http://192.168.2.41:8188" target="_blank" rel="noreferrer">ComfyUI oeffnen</a>
+          <a class="button" id="visionLink" href="http://192.168.2.41:8003" target="_blank" rel="noreferrer">Vision oeffnen</a>
           <a class="button" id="voiceLink" href="http://192.168.2.41:8002" target="_blank" rel="noreferrer">Voice Pro oeffnen</a>
           <a class="button" id="whisperLink" href="http://192.168.2.41:8000" target="_blank" rel="noreferrer">Whisper oeffnen</a>
           <a class="button secondary" id="queueLink" href="http://192.168.2.41:11435/status" target="_blank" rel="noreferrer">GPU Queue</a>
@@ -695,6 +698,21 @@
         <div class="path" id="ollamaResult">Bereit.</div>
       </article>
 
+      <article class="card" data-accent="blue">
+        <div>
+          <h2>Vision</h2>
+          <p class="tagline">Lokale Bild- und Video-Frame-Analyse mit multimodalen Modellen wie Llava oder Moondream. Erkennt Objekte, liest Texte aus Bildern und generiert detaillierte Beschreibungen.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Engine</span><span>Ollama</span></div>
+          <div class="fact"><span>Port</span><span>8003</span></div>
+          <div class="fact"><span>Modelle</span><span>Llava / Moondream</span></div>
+          <div class="fact"><span>GPU</span><span>Queue-gesteuert</span></div>
+        </div>
+        <div class="actions">
+          <a class="button" id="visionPortalLink" href="http://192.168.2.41:8003" target="_blank" rel="noreferrer">Vision oeffnen</a>
+        </div>
+      </article>
 
       <article class="card" data-accent="green">
         <div>
