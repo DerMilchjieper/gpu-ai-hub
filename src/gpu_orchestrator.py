@@ -417,6 +417,7 @@ DASHBOARD_HTML = r"""<!doctype html>
       <p class="sub">Live-Status fuer die lokale GPU-Queue. KI-Jobs laufen FIFO und sollen warten statt auf CPU auszuweichen.</p>
     </div>
     <div class="actions">
+      <a id="hubLink" href="http://192.168.2.41:8191/">KI Hub</a>
       <a href="/api/status">JSON</a>
       <button id="offloadComfyBtn">ComfyUI entladen</button>
       <button id="offloadOllamaBtn">Ollama entladen</button>
@@ -456,6 +457,8 @@ DASHBOARD_HTML = r"""<!doctype html>
 </main>
 <script>
   const fmt = new Intl.NumberFormat('de-DE');
+  const hubLink = document.getElementById('hubLink');
+  if (hubLink) hubLink.href = `http://${window.location.hostname || '192.168.2.41'}:8191/`;
   function setText(id, value) { document.getElementById(id).textContent = value; }
   function row(cells) { return `<tr>${cells.map((c) => `<td>${c}</td>`).join('')}</tr>`; }
   async function refresh() {

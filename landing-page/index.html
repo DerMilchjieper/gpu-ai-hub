@@ -367,6 +367,59 @@
         width: 100%;
       }
     }
+
+
+    /* Unified GPU AI Hub theme shared with the orchestrator dashboard. */
+    :root {
+      --ink: #eaf2ff;
+      --muted: #9db0c4;
+      --paper: #081018;
+      --panel: rgba(16, 26, 38, 0.92);
+      --line: #26384a;
+      --green: #5ee0b7;
+      --blue: #78bdf2;
+      --clay: #ff9b72;
+      --gold: #ffca75;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+    }
+
+    body {
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", ui-sans-serif, sans-serif;
+      background: linear-gradient(180deg, #081018, #05080c);
+    }
+
+    body::before {
+      opacity: 0.24;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      mask-image: linear-gradient(to bottom, #000, transparent 86%);
+    }
+
+    header { min-height: 36vh; }
+    h1 { font-size: clamp(40px, 6vw, 76px); letter-spacing: -0.03em; }
+    .lede, .toolbar, .facts, .path, .tagline, .decision, button, a.button, textarea { font-family: Inter, "Segoe UI", ui-sans-serif, sans-serif; }
+    .mesh-stage, .metric, .card, .decision {
+      background: var(--panel);
+      border-color: var(--line);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    .mesh-stage::before, .mesh-stage::after { border-color: rgba(120, 189, 242, 0.32); }
+    .mesh-form span, .status-strip div { background: rgba(16,26,38,0.72); border-color: var(--line); }
+    .status-strip div, .metric span, .fact span:first-child, .path, .tagline, .lede { color: var(--muted); }
+    .card { min-height: 360px; }
+    .button, button, a.button {
+      background: #17283a;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      border-radius: 10px;
+    }
+    .button.secondary, button.secondary, a.button.secondary { background: #101a26; }
+    textarea { border-color: var(--line) !important; background: rgba(255,255,255,0.04) !important; color: var(--ink) !important; }
+
   </style>
 </head>
 <body>
@@ -596,6 +649,7 @@
     const comfyUrl = `http://${window.location.hostname || "192.168.2.41"}:8188`;
     const host = window.location.hostname || "192.168.2.41";
     const gpuQueueBase = `http://${host}:11435`;
+    const gpuQueueDashboardUrl = `${gpuQueueBase}/status`;
     const gpuQueueUrl = `${gpuQueueBase}/api/status`;
     const whisperPortalUrl = `http://${host}:8000`;
     const whisperWorkspaceUrl = `http://${host}:8001/?workspace=1`;
@@ -622,7 +676,7 @@
     if (whisperWorkspaceLink) whisperWorkspaceLink.href = whisperWorkspaceUrl;
     ["queueLink", "queueStatusLink"].forEach((id) => {
       const link = document.getElementById(id);
-      if (link) link.href = gpuQueueUrl;
+      if (link) link.href = gpuQueueDashboardUrl;
     });
     document.querySelectorAll(".js-orchestrator-url").forEach((target) => {
       target.textContent = gpuQueueBase;
