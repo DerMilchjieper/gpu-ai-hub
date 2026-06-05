@@ -455,9 +455,104 @@ DASHBOARD_HTML = r"""<!doctype html>
     a:hover, button:hover { background:#20354a; }
     th,td { border-bottom-color:rgba(150,171,194,.16); }
     code { color:#c4d1df; }
+
+
+    /* Shared top navigation across Zen AI Hub tools. */
+    .site-menu {
+      width: 100%;
+      border-bottom: 1px solid var(--line);
+      background: rgba(9, 13, 18, 0.92);
+      backdrop-filter: blur(14px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .site-menu-inner {
+      width: min(1240px, calc(100% - 36px));
+      min-height: 58px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .site-brand {
+      color: var(--text, var(--ink));
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .site-nav {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .site-nav a {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.055);
+      color: var(--text, var(--ink));
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .site-nav a:hover { background: #20354a; }
+    .site-nav a[data-current="1"] {
+      background: #1f8f7a;
+      color: #06100e;
+      border-color: rgba(85,214,189,0.55);
+    }
+    @media (max-width: 760px) {
+      .site-menu-inner { align-items: stretch; flex-direction: column; padding: 10px 0; }
+      .site-nav { justify-content: flex-start; }
+      .site-nav a { flex: 1 1 auto; }
+    }
 </style>
 </head>
-<body>
+<body data-page="queue">
+  <div class="site-menu">
+    <div class="site-menu-inner">
+      <a class="site-brand" data-nav="hub" href="http://192.168.2.41:8191/">Zen AI Hub</a>
+      <nav class="site-nav" aria-label="Zen AI Hub Navigation">
+        <a data-nav="hub" href="http://192.168.2.41:8191/">Hub</a>
+        <a data-nav="queue" href="http://192.168.2.41:11435/status">GPU Queue</a>
+        <a data-nav="whisper" href="http://192.168.2.41:8000/">Whisper</a>
+        <a data-nav="workspace" href="http://192.168.2.41:8001/?workspace=1">Workspace</a>
+        <a data-nav="comfy" href="http://192.168.2.41:8188/" target="_blank" rel="noreferrer">ComfyUI</a>
+      </nav>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const host = window.location.hostname || "192.168.2.41";
+      const urls = {
+        hub: `http://${host}:8191/`,
+        queue: `http://${host}:11435/status`,
+        whisper: `http://${host}:8000/`,
+        workspace: `http://${host}:8001/?workspace=1`,
+        comfy: `http://${host}:8188/`,
+      };
+      document.querySelectorAll("[data-nav]").forEach((link) => {
+        const key = link.dataset.nav;
+        if (urls[key]) link.href = urls[key];
+      });
+      const active = document.body.dataset.page;
+      if (active) {
+        document.querySelectorAll(`[data-nav="${active}"]`).forEach((link) => {
+          link.dataset.current = "1";
+        });
+      }
+    })();
+  </script>
 <main>
   <header>
     <div>
