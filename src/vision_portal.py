@@ -86,13 +86,19 @@ HTML = r'''<!doctype html>
   <div class="site-menu">
     <div class="site-menu-inner">
       <a class="site-brand" data-nav="hub" href="http://192.168.2.41:8191/">Zen AI Hub</a>
-      <nav class="site-nav" aria-label="Zen AI Hub Navigation">
+            <nav class="site-nav" aria-label="Zen AI Hub Navigation">
         <a data-nav="hub" href="http://192.168.2.41:8191/">Hub</a>
+        <a data-nav="gallery" href="http://192.168.2.41:8009/">Gallery</a>
+        <a data-nav="audio" href="http://192.168.2.41:8010/">Audio</a>
+        <a data-nav="system" href="http://192.168.2.41:8008/">System</a>
         <a data-nav="queue" href="http://192.168.2.41:11435/status">GPU Queue</a>
         <a data-nav="vision" href="http://192.168.2.41:8003/">Vision</a>
         <a data-nav="voice" href="http://192.168.2.41:8002/">Voice Pro</a>
         <a data-nav="docs" href="http://192.168.2.41:8004/">Docs</a>
         <a data-nav="video" href="http://192.168.2.41:8005/">Video Lab</a>
+        <a data-nav="coder" href="http://192.168.2.41:8006/">Coder</a>
+        <a data-nav="auto" href="http://192.168.2.41:8007/">Automator</a>
+        <a data-nav="n8n" href="http://192.168.2.41:5678/" target="_blank" rel="noreferrer">n8n</a>
         <a data-nav="whisper" href="http://192.168.2.41:8000/">Whisper</a>
         <a data-nav="workspace" href="http://192.168.2.41:8001/?workspace=1">Workspace</a>
         <a data-nav="comfy" href="http://192.168.2.41:8188/" target="_blank" rel="noreferrer">ComfyUI</a>
@@ -102,7 +108,7 @@ HTML = r'''<!doctype html>
   <script>
     (() => {
       const host = window.location.hostname || "192.168.2.41";
-      const urls = { hub: `http://${host}:8191/`, queue: `http://${host}:11435/status`, vision: `http://${host}:8003/`, voice: `http://${host}:8002/`, docs: `http://${host}:8004/`, video: `http://${host}:8005/`, whisper: `http://${host}:8000/`, workspace: `http://${host}:8001/?workspace=1`, comfy: `http://${host}:8188/` };
+      const urls = { hub: `http://${host}:8191/`, queue: `http://${host}:11435/status`, gallery: `http://${host}:8009/`, system: `http://${host}:8008/`, audio: `http://${host}:8010/`, vision: `http://${host}:8003/`, voice: `http://${host}:8002/`, docs: `http://${host}:8004/`, video: `http://${host}:8005/`, coder: `http://${host}:8006/`, auto: `http://${host}:8007/`, n8n: `http://${host}:5678/`, whisper: `http://${host}:8000/`, workspace: `http://${host}:8001/?workspace=1`, comfy: `http://${host}:8188/` };
       document.querySelectorAll("[data-nav]").forEach((link) => { const key = link.dataset.nav; if (urls[key]) link.href = urls[key]; });
       const active = document.body.dataset.page;
       document.querySelectorAll(`[data-nav="${active}"]`).forEach((link) => { link.dataset.current = "1"; });
