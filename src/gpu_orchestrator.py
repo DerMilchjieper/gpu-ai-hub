@@ -29,6 +29,8 @@ GPU_INDEX = os.getenv("GPU_ORCH_GPU_INDEX", "0")
 POLL_SECONDS = float(os.getenv("GPU_ORCH_POLL_SECONDS", "2"))
 DEFAULT_TIMEOUT_SECONDS = int(os.getenv("GPU_ORCH_JOB_TIMEOUT_SECONDS", "7200"))
 STRICT_OLLAMA_GPU = os.getenv("GPU_ORCH_STRICT_OLLAMA_GPU", "1").lower() not in {"0", "false", "no"}
+AUTO_OFFLOAD = os.getenv("GPU_ORCH_AUTO_OFFLOAD", "1").lower() not in {"0", "false", "no"}
+AUTO_OFFLOAD_DELAY_SECONDS = float(os.getenv("GPU_ORCH_AUTO_OFFLOAD_DELAY_SECONDS", "0"))
 
 TARGETS = {
     "ollama": os.getenv("GPU_ORCH_OLLAMA", "http://127.0.0.1:11434"),
@@ -125,24 +127,55 @@ def loaded_ollama_models() -> list[str]:
     return models
 
 
+def offload_ollama() -> None:
+    for model_name in loaded_ollama_models():
+        subprocess.run(["ollama", "stop", model_name], capture_output=True, text=True, timeout=30)
+
+
+def offload_whisper() -> None:
+    try:
+        requests.post(TARGETS["whisper"].rstrip("/") + "/api/deactivate", timeout=20)
+    except Exception:
+        pass
+
+
+def offload_comfy() -> None:
+    try:
+        requests.post(
+            TARGETS["comfy"].rstrip("/") + "/free",
+            json={"unload_models": True, "free_memory": True},
+            timeout=20,
+        )
+    except Exception:
+        pass
+
+
 def release_other_gpu_users(service: str) -> None:
     if service != "ollama":
-        for model_name in loaded_ollama_models():
-            subprocess.run(["ollama", "stop", model_name], capture_output=True, text=True, timeout=30)
+        offload_ollama()
     if service != "whisper":
-        try:
-            requests.post(TARGETS["whisper"].rstrip("/") + "/api/deactivate", timeout=20)
-        except Exception:
-            pass
+        offload_whisper()
     if service != "comfy":
-        try:
-            requests.post(
-                TARGETS["comfy"].rstrip("/") + "/free",
-                json={"unload_models": True, "free_memory": True},
-                timeout=20,
-            )
-        except Exception:
-            pass
+        offload_comfy()
+
+
+def offload_all() -> None:
+    offload_ollama()
+    offload_whisper()
+    offload_comfy()
+
+
+def offload_after_job(service: str) -> None:
+    if not AUTO_OFFLOAD:
+        return
+    if AUTO_OFFLOAD_DELAY_SECONDS > 0:
+        time.sleep(AUTO_OFFLOAD_DELAY_SECONDS)
+    if service == "ollama":
+        offload_ollama()
+    elif service == "whisper":
+        offload_whisper()
+    elif service == "comfy":
+        offload_comfy()
 
 
 def assert_no_ollama_cpu_offload() -> None:
@@ -222,6 +255,8 @@ def status_payload() -> dict[str, Any]:
             "targets": TARGETS,
             "min_free_mib": MIN_FREE_MIB,
             "strict_ollama_gpu": STRICT_OLLAMA_GPU,
+            "auto_offload": AUTO_OFFLOAD,
+            "auto_offload_delay_seconds": AUTO_OFFLOAD_DELAY_SECONDS,
         }
 
 
@@ -270,6 +305,7 @@ DASHBOARD_HTML = r"""<!doctype html>
     </div>
     <div class="actions">
       <a href="/api/status">JSON</a>
+      <button id="offloadBtn">Alles entladen</button>
       <button id="refreshBtn">Aktualisieren</button>
     </div>
   </header>
@@ -279,6 +315,7 @@ DASHBOARD_HTML = r"""<!doctype html>
     <div class="card"><div class="label">VRAM frei</div><div class="value" id="vramFree">-</div><div class="bar"><div class="fill" id="vramFill"></div></div></div>
     <div class="card"><div class="label">GPU Last</div><div class="value" id="gpuUtil">-</div><div class="bar"><div class="fill" id="utilFill"></div></div></div>
     <div class="card"><div class="label">Queue</div><div class="value" id="queueDepth">-</div><div class="label" id="currentJob">kein aktiver Job</div></div>
+    <div class="card"><div class="label">Auto-Offload</div><div class="value" id="autoOffload">-</div><div class="label" id="offloadDelay">nach jedem Job</div></div>
   </div>
 
   <section>
@@ -312,11 +349,29 @@ DASHBOARD_HTML = r"""<!doctype html>
     document.getElementById('utilFill').style.width = `${gpu.utilization_gpu_pct || 0}%`;
     setText('queueDepth', data.queue_depth ?? 0);
     setText('currentJob', data.current_job ? `${data.current_job.service} ${data.current_job.status}` : 'kein aktiver Job');
+    setText('autoOffload', data.auto_offload ? 'AN' : 'AUS');
+    document.getElementById('autoOffload').className = `value ${data.auto_offload ? 'ok' : 'warn'}`;
+    setText('offloadDelay', data.auto_offload ? `Delay ${data.auto_offload_delay_seconds || 0}s` : 'Modelle bleiben geladen');
     document.getElementById('routes').innerHTML = Object.entries(data.targets || {}).map(([name, url]) => row([`<span class="pill">${name}</span>`, `<code>${url}</code>`, `${data.min_free_mib?.[name] || '-'} MiB min. frei`])).join('');
     const jobs = data.completed_recent || [];
     document.getElementById('jobs').innerHTML = jobs.length ? jobs.map((job) => row([job.status, job.service, `<code>${job.path}</code>`, `${job.wait_sec ?? '-'}s`, `${job.run_sec ?? '-'}s`, job.error || ''])).join('') : row(['-', '-', 'Noch keine Jobs seit Service-Start', '-', '-', '']);
   }
+  async function offloadNow() {
+    const button = document.getElementById('offloadBtn');
+    const oldText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Entlade...';
+    try {
+      const response = await fetch('/api/offload', { method: 'POST' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      await refresh();
+    } finally {
+      button.disabled = false;
+      button.textContent = oldText;
+    }
+  }
   document.getElementById('refreshBtn').addEventListener('click', refresh);
+  document.getElementById('offloadBtn').addEventListener('click', offloadNow);
   refresh();
   setInterval(refresh, 3000);
 </script>
@@ -338,6 +393,7 @@ def worker() -> None:
             with STATE_LOCK:
                 CURRENT_JOB = complete_record(job, "running")
             job.response = forward(job)
+            offload_after_job(job.service)
         except Exception as exc:
             job.error = str(exc)
             body = json.dumps({"status": "error", "job_id": job.id, "detail": job.error}, indent=2).encode()
@@ -411,6 +467,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         split = urlsplit(self.path)
+        if split.path == "/api/offload":
+            try:
+                offload_all()
+                self._json(200, {"status": "ok", "detail": "all models offloaded", "gpu": gpu_snapshot()})
+            except Exception as exc:
+                self._json(503, {"status": "error", "detail": str(exc), "gpu": gpu_snapshot()})
+            return
         service, upstream_path = classify(split.path)
         if not service:
             self._json(404, {"status": "error", "detail": "unknown route"})

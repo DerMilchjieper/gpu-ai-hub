@@ -8,6 +8,8 @@ WorkingDirectory=/home/wizzard/gpu-orchestrator
 Environment=GPU_ORCH_PORT=11435
 Environment=GPU_ORCH_GPU_INDEX=0
 Environment=GPU_ORCH_STRICT_OLLAMA_GPU=1
+Environment=GPU_ORCH_AUTO_OFFLOAD=1
+Environment=GPU_ORCH_AUTO_OFFLOAD_DELAY_SECONDS=0
 Environment=GPU_ORCH_OLLAMA_MIN_FREE_MIB=2048
 Environment=GPU_ORCH_WHISPER_MIN_FREE_MIB=2500
 Environment=GPU_ORCH_COMFY_MIN_FREE_MIB=8192

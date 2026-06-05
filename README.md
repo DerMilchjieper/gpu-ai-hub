@@ -7,7 +7,7 @@ The project provides:
 - a FIFO HTTP gateway for GPU AI jobs
 - hard GPU-only policy for queued requests
 - active VRAM release between Ollama, Whisper and ComfyUI
-- a browser landing page for GPU queue status, Ollama tests, Whisper and ComfyUI workflow links
+- a browser landing page for GPU queue status, manual offload, Ollama tests, Whisper and ComfyUI workflow links
 - a user-level systemd service template
 
 ## Ports
@@ -32,7 +32,7 @@ The orchestrator queues POST requests and checks free VRAM with `nvidia-smi` bef
 - non-Whisper jobs call Whisper `/api/deactivate`
 - non-Comfy jobs call ComfyUI `/free`
 
-For Ollama, strict mode checks `ollama ps` after requests and rejects results if a model is not reported as `100% GPU`.
+For Ollama, strict mode checks `ollama ps` after requests and rejects results if a model is not reported as `100% GPU`. Auto-offload is enabled by default and unloads the service model after each queued job. The dashboard also exposes an `Alles entladen` button backed by `POST /api/offload`.
 
 Whisper should be configured with CPU fallback disabled. In the companion local setup this means `WHISPER_CPU_FALLBACK=0`.
 
@@ -51,6 +51,8 @@ Important settings in `systemd/gpu-orchestrator.service`:
 - `GPU_ORCH_PORT=11435`
 - `GPU_ORCH_GPU_INDEX=0`
 - `GPU_ORCH_STRICT_OLLAMA_GPU=1`
+- `GPU_ORCH_AUTO_OFFLOAD=1`
+- `GPU_ORCH_AUTO_OFFLOAD_DELAY_SECONDS=0`
 - `GPU_ORCH_OLLAMA_MIN_FREE_MIB=2048`
 - `GPU_ORCH_WHISPER_MIN_FREE_MIB=2500`
 - `GPU_ORCH_COMFY_MIN_FREE_MIB=8192`
