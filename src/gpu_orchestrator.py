@@ -40,7 +40,7 @@ TARGETS = {
 }
 
 MIN_FREE_MIB = {
-    "ollama": int(os.getenv("GPU_ORCH_OLLAMA_MIN_FREE_MIB", "4096")),
+    "ollama": int(os.getenv("GPU_ORCH_OLLAMA_MIN_FREE_MIB", "16384")),
     "whisper": int(os.getenv("GPU_ORCH_WHISPER_MIN_FREE_MIB", "4096")),
     "comfy": int(os.getenv("GPU_ORCH_COMFY_MIN_FREE_MIB", "8192")),
 }
