@@ -600,6 +600,7 @@
         <a data-nav="queue" href="http://192.168.2.41:11435/status">GPU Queue</a>
         <a data-nav="vision" href="http://192.168.2.41:8003/">Vision</a>
         <a data-nav="voice" href="http://192.168.2.41:8002/">Voice Pro</a>
+        <a data-nav="docs" href="http://192.168.2.41:8004/">Docs</a>
         <a data-nav="whisper" href="http://192.168.2.41:8000/">Whisper</a>
         <a data-nav="workspace" href="http://192.168.2.41:8001/?workspace=1">Workspace</a>
         <a data-nav="comfy" href="http://192.168.2.41:8188/" target="_blank" rel="noreferrer">ComfyUI</a>
@@ -614,6 +615,7 @@
         queue: `http://${host}:11435/status`,
         vision: `http://${host}:8003/`,
         voice: `http://${host}:8002/`,
+        docs: `http://${host}:8004/`,
         whisper: `http://${host}:8000/`,
         workspace: `http://${host}:8001/?workspace=1`,
         comfy: `http://${host}:8188/`,
@@ -637,6 +639,7 @@
         <p class="lede">Zentrale Startseite fuer lokale KI-Jobs auf der RTX 3090: GPU-Queue, Ollama, Whisper und ComfyUI-Workflows. Schwere Jobs sollen ueber den Orchestrator laufen, damit nichts still auf CPU ausweicht.</p>
         <div class="hero-actions">
           <a class="button js-comfy-link" href="http://192.168.2.41:8188" target="_blank" rel="noreferrer">ComfyUI oeffnen</a>
+          <a class="button" id="docsLink" href="http://192.168.2.41:8004" target="_blank" rel="noreferrer">Docs oeffnen</a>
           <a class="button" id="visionLink" href="http://192.168.2.41:8003" target="_blank" rel="noreferrer">Vision oeffnen</a>
           <a class="button" id="voiceLink" href="http://192.168.2.41:8002" target="_blank" rel="noreferrer">Voice Pro oeffnen</a>
           <a class="button" id="whisperLink" href="http://192.168.2.41:8000" target="_blank" rel="noreferrer">Whisper oeffnen</a>
@@ -696,6 +699,22 @@
           <button class="button secondary" data-copy="http://192.168.2.41:11435/api/generate">API kopieren</button>
         </div>
         <div class="path" id="ollamaResult">Bereit.</div>
+      </article>
+
+      <article class="card" data-accent="blue">
+        <div>
+          <h2>Docs (RAG)</h2>
+          <p class="tagline">Privates Dokumenten-Wissen. Lade PDFs hoch, sie werden in ChromaDB vektorisiert. Chatte lokal mit deinen Unterlagen ueber Ollama.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Engine</span><span>Ollama + Chroma</span></div>
+          <div class="fact"><span>Port</span><span>8004</span></div>
+          <div class="fact"><span>Modelle</span><span>Qwen3 / Phi3.5</span></div>
+          <div class="fact"><span>GPU</span><span>Queue-gesteuert</span></div>
+        </div>
+        <div class="actions">
+          <a class="button" id="docsPortalLink" href="http://192.168.2.41:8004" target="_blank" rel="noreferrer">Docs oeffnen</a>
+        </div>
       </article>
 
       <article class="card" data-accent="blue">
