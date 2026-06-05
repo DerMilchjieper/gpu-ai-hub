@@ -40,8 +40,8 @@ TARGETS = {
 }
 
 MIN_FREE_MIB = {
-    "ollama": int(os.getenv("GPU_ORCH_OLLAMA_MIN_FREE_MIB", "2048")),
-    "whisper": int(os.getenv("GPU_ORCH_WHISPER_MIN_FREE_MIB", "2500")),
+    "ollama": int(os.getenv("GPU_ORCH_OLLAMA_MIN_FREE_MIB", "4096")),
+    "whisper": int(os.getenv("GPU_ORCH_WHISPER_MIN_FREE_MIB", "4096")),
     "comfy": int(os.getenv("GPU_ORCH_COMFY_MIN_FREE_MIB", "8192")),
 }
 
@@ -296,9 +296,22 @@ def assert_no_ollama_cpu_offload() -> None:
     output = ollama_processors()
     lines = [line for line in output.splitlines() if line.strip()]
     model_lines = lines[1:] if len(lines) > 1 else []
+    
+    # Offenders are lines that don't say 100% GPU
     offenders = [line for line in model_lines if "100% GPU" not in line]
+    
     if offenders:
-        raise RuntimeError("Ollama CPU/offload detected after request; refusing result. ollama ps:\n" + output)
+        # EXTREMELY IMPORTANT: If we detect CPU offload, we MUST kill the model 
+        # because Ollama will keep it in memory "poisoned" with CPU offload 
+        # for all subsequent requests.
+        for line in offenders:
+            parts = line.split()
+            if parts:
+                model_name = parts[0]
+                print(f"Force stopping offloaded model: {model_name}", flush=True)
+                subprocess.run(["ollama", "stop", model_name], capture_output=True, text=True, timeout=10)
+        
+        raise RuntimeError("Ollama CPU/offload detected (GPU headroom insufficient). The model has been force-unloaded to allow a fresh retry. ollama ps:\n" + output)
 
 
 def classify(path: str) -> tuple[str | None, str]:
