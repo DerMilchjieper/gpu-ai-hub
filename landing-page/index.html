@@ -617,6 +617,8 @@
         vision: `http://${host}:8003/`,
         voice: `http://${host}:8002/`,
         docs: `http://${host}:8004/`,
+        coder: `http://${host}:8006/`,
+        auto: `http://${host}:8007/`,
         video: `http://${host}:8005/`,
         whisper: `http://${host}:8000/`,
         workspace: `http://${host}:8001/?workspace=1`,
@@ -642,9 +644,11 @@
         <div class="hero-actions">
           <a class="button js-comfy-link" href="http://192.168.2.41:8188" target="_blank" rel="noreferrer">ComfyUI oeffnen</a>
           <a class="button" id="docsLink" href="http://192.168.2.41:8004" target="_blank" rel="noreferrer">Docs oeffnen</a>
+          <a class="button" id="coderLink" href="http://192.168.2.41:8006" target="_blank" rel="noreferrer">Coder oeffnen</a>
           <a class="button" id="visionLink" href="http://192.168.2.41:8003" target="_blank" rel="noreferrer">Vision oeffnen</a>
           <a class="button" id="voiceLink" href="http://192.168.2.41:8002" target="_blank" rel="noreferrer">Voice Pro oeffnen</a>
           <a class="button" id="videoLink" href="http://192.168.2.41:8005" target="_blank" rel="noreferrer">Video Lab oeffnen</a>
+          <a class="button" id="autoLink" href="http://192.168.2.41:8007" target="_blank" rel="noreferrer">Automator oeffnen</a>
           <a class="button" id="whisperLink" href="http://192.168.2.41:8000" target="_blank" rel="noreferrer">Whisper oeffnen</a>
           <a class="button secondary" id="queueLink" href="http://192.168.2.41:11435/status" target="_blank" rel="noreferrer">GPU Queue</a>
           <button class="secondary" data-copy="/home/wizzard/ai/comfyui/workflows">Workflow Ordner kopieren</button>
@@ -702,6 +706,22 @@
           <button class="button secondary" data-copy="http://192.168.2.41:11435/api/generate">API kopieren</button>
         </div>
         <div class="path" id="ollamaResult">Bereit.</div>
+      </article>
+
+      <article class="card" data-accent="blue">
+        <div>
+          <h2>Coder</h2>
+          <p class="tagline">Lokaler KI Code-Assistent. Nutze spezialisierte Modelle (z.B. Qwen2.5-Coder) um Code zu refaktorieren, Fehler zu finden oder Zusammenhaenge zu verstehen.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Engine</span><span>Ollama</span></div>
+          <div class="fact"><span>Port</span><span>8006</span></div>
+          <div class="fact"><span>Modelle</span><span>Qwen2.5 / DeepSeek</span></div>
+          <div class="fact"><span>GPU</span><span>Queue-gesteuert</span></div>
+        </div>
+        <div class="actions">
+          <a class="button" id="coderPortalLink" href="http://192.168.2.41:8006" target="_blank" rel="noreferrer">Coder oeffnen</a>
+        </div>
       </article>
 
       <article class="card" data-accent="blue">
@@ -783,6 +803,22 @@
         <div class="actions">
           <a class="button" id="whisperPortalLink" href="http://192.168.2.41:8000" target="_blank" rel="noreferrer">Portal oeffnen</a>
           <a class="button secondary" id="whisperWorkspaceLink" href="http://192.168.2.41:8001/?workspace=1" target="_blank" rel="noreferrer">Workspace</a>
+        </div>
+      </article>
+
+      <article class="card" data-accent="clay">
+        <div>
+          <h2>Automator</h2>
+          <p class="tagline">Headless ComfyUI Workflow-Ausfuehrung. Loese komplexe Bild- und Video-Generierungs-Workflows via API und einfachem Web-Interface aus.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Engine</span><span>ComfyUI API</span></div>
+          <div class="fact"><span>Port</span><span>8007</span></div>
+          <div class="fact"><span>Backend</span><span>Port 8188</span></div>
+          <div class="fact"><span>GPU</span><span>Queue-gesteuert</span></div>
+        </div>
+        <div class="actions">
+          <a class="button" id="autoPortalLink" href="http://192.168.2.41:8007" target="_blank" rel="noreferrer">Automator oeffnen</a>
         </div>
       </article>
     </section>
