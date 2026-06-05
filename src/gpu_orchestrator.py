@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import queue
+import re
 import subprocess
 import threading
 import time
@@ -97,6 +98,117 @@ def gpu_snapshot() -> dict[str, Any]:
         }
     except Exception as exc:
         return {"ok": False, "error": str(exc)}
+
+
+def gpu_processes() -> list[dict[str, Any]]:
+    cmd = [
+        "nvidia-smi",
+        "--query-compute-apps=pid,process_name,used_memory",
+        "--format=csv,noheader,nounits",
+    ]
+    try:
+        output = subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT, timeout=10).strip()
+    except Exception:
+        return []
+    processes: list[dict[str, Any]] = []
+    for line in output.splitlines():
+        parts = [part.strip() for part in line.split(",")]
+        if len(parts) != 3:
+            continue
+        pid, process_name, used_memory = parts
+        try:
+            used_memory_mib = int(used_memory)
+        except ValueError:
+            used_memory_mib = 0
+        processes.append({
+            "pid": int(pid),
+            "process_name": process_name,
+            "used_memory_mib": used_memory_mib,
+            "tool": classify_process(process_name),
+        })
+    return processes
+
+
+def classify_process(process_name: str) -> str:
+    lower = process_name.lower()
+    if "ollama" in lower:
+        return "ollama"
+    if "whisper" in lower or "uvicorn" in lower:
+        return "whisper"
+    if "comfyui" in lower or "comfy" in lower:
+        return "comfy"
+    if "xorg" in lower:
+        return "desktop"
+    return "other"
+
+
+def parse_ollama_ps() -> list[dict[str, Any]]:
+    output = ollama_processors()
+    lines = [line for line in output.splitlines() if line.strip()]
+    models: list[dict[str, Any]] = []
+    for line in lines[1:]:
+        columns = re.split(r"\s{2,}", line.strip())
+        if len(columns) < 6:
+            continue
+        models.append({
+            "name": columns[0],
+            "id": columns[1],
+            "size": columns[2],
+            "processor": columns[3],
+            "context": columns[4],
+            "until": columns[5],
+            "raw": line,
+        })
+    return models
+
+
+def whisper_status() -> dict[str, Any]:
+    try:
+        response = requests.get(TARGETS["whisper"].rstrip("/") + "/api/status", timeout=5)
+        return response.json()
+    except Exception as exc:
+        return {"status": "unavailable", "error": str(exc)}
+
+
+def comfy_status() -> dict[str, Any]:
+    try:
+        response = requests.get(TARGETS["comfy"].rstrip("/") + "/system_stats", timeout=5)
+        data = response.json()
+        return {
+            "status": "ok",
+            "devices": [
+                {
+                    "name": device.get("name"),
+                    "type": device.get("type"),
+                    "index": device.get("index"),
+                    "vram_total_mib": round((device.get("vram_total") or 0) / 1024 / 1024),
+                    "vram_free_mib": round((device.get("vram_free") or 0) / 1024 / 1024),
+                    "torch_vram_total_mib": round((device.get("torch_vram_total") or 0) / 1024 / 1024),
+                    "torch_vram_free_mib": round((device.get("torch_vram_free") or 0) / 1024 / 1024),
+                }
+                for device in data.get("devices", [])
+            ],
+        }
+    except Exception as exc:
+        return {"status": "unavailable", "error": str(exc)}
+
+
+def tool_usage() -> dict[str, Any]:
+    processes = gpu_processes()
+    by_tool: dict[str, dict[str, Any]] = {}
+    for proc in processes:
+        bucket = by_tool.setdefault(proc["tool"], {"used_memory_mib": 0, "processes": []})
+        bucket["used_memory_mib"] += proc["used_memory_mib"]
+        bucket["processes"].append(proc)
+    return {
+        "processes": processes,
+        "by_tool": by_tool,
+        "models": {
+            "ollama": parse_ollama_ps(),
+            "whisper": whisper_status(),
+            "comfy": comfy_status(),
+        },
+    }
 
 
 def wait_for_gpu(min_free_mib: int, deadline: float) -> None:
@@ -249,6 +361,7 @@ def status_payload() -> dict[str, Any]:
         return {
             "status": "ok",
             "gpu": gpu_snapshot(),
+            "usage": tool_usage(),
             "queue_depth": WORK_QUEUE.qsize(),
             "current_job": CURRENT_JOB,
             "completed_recent": COMPLETED[:10],
@@ -319,6 +432,16 @@ DASHBOARD_HTML = r"""<!doctype html>
   </div>
 
   <section>
+    <h2>GPU-Belegung nach Tool</h2>
+    <table><thead><tr><th>Tool</th><th>VRAM</th><th>Prozesse</th></tr></thead><tbody id="toolUsage"></tbody></table>
+  </section>
+
+  <section>
+    <h2>Geladene Modelle</h2>
+    <table><thead><tr><th>Tool</th><th>Modell</th><th>Device/Processor</th><th>Details</th></tr></thead><tbody id="models"></tbody></table>
+  </section>
+
+  <section>
     <h2>Routen</h2>
     <table><tbody id="routes"></tbody></table>
   </section>
@@ -352,6 +475,31 @@ DASHBOARD_HTML = r"""<!doctype html>
     setText('autoOffload', data.auto_offload ? 'AN' : 'AUS');
     document.getElementById('autoOffload').className = `value ${data.auto_offload ? 'ok' : 'warn'}`;
     setText('offloadDelay', data.auto_offload ? `Delay ${data.auto_offload_delay_seconds || 0}s` : 'Modelle bleiben geladen');
+    const usage = data.usage || {};
+    const byTool = usage.by_tool || {};
+    document.getElementById('toolUsage').innerHTML = Object.keys(byTool).length
+      ? Object.entries(byTool).sort((a, b) => (b[1].used_memory_mib || 0) - (a[1].used_memory_mib || 0)).map(([tool, info]) => row([
+          `<span class="pill">${tool}</span>`,
+          `${fmt.format(info.used_memory_mib || 0)} MiB`,
+          (info.processes || []).map((proc) => `${proc.pid}: ${proc.process_name.split('/').pop()}`).join('<br>')
+        ])).join('')
+      : row(['-', '0 MiB', 'Keine Compute-Prozesse']);
+
+    const modelRows = [];
+    (usage.models?.ollama || []).forEach((model) => modelRows.push(row(['ollama', `<code>${model.name}</code>`, model.processor || '-', `${model.size || ''} ${model.until || ''}`.trim()])));
+    const whisper = usage.models?.whisper || {};
+    if (whisper.model_loaded) {
+      const runtime = whisper.model_runtime || {};
+      modelRows.push(row(['whisper', `<code>${runtime.name || 'unknown'}</code>`, `${runtime.device || '-'} ${runtime.compute_type || ''}`.trim(), runtime.fallback_reason || 'geladen']));
+    }
+    (usage.models?.comfy?.devices || []).forEach((device) => {
+      const used = (device.vram_total_mib || 0) - (device.vram_free_mib || 0);
+      if (used > 256 || device.torch_vram_total_mib > 0) {
+        modelRows.push(row(['comfy', `<code>${device.name || 'cuda'}</code>`, device.type || '-', `${fmt.format(Math.max(used, 0))} MiB belegt, torch ${fmt.format(device.torch_vram_total_mib || 0)} MiB`]));
+      }
+    });
+    document.getElementById('models').innerHTML = modelRows.length ? modelRows.join('') : row(['-', 'Keine Modelle geladen', '-', '']);
+
     document.getElementById('routes').innerHTML = Object.entries(data.targets || {}).map(([name, url]) => row([`<span class="pill">${name}</span>`, `<code>${url}</code>`, `${data.min_free_mib?.[name] || '-'} MiB min. frei`])).join('');
     const jobs = data.completed_recent || [];
     document.getElementById('jobs').innerHTML = jobs.length ? jobs.map((job) => row([job.status, job.service, `<code>${job.path}</code>`, `${job.wait_sec ?? '-'}s`, `${job.run_sec ?? '-'}s`, job.error || ''])).join('') : row(['-', '-', 'Noch keine Jobs seit Service-Start', '-', '-', '']);

@@ -5,6 +5,7 @@ Local GPU-first orchestration for Ollama, Whisper and ComfyUI on a single NVIDIA
 The project provides:
 
 - a FIFO HTTP gateway for GPU AI jobs
+- live per-tool VRAM and loaded-model visibility for Ollama, Whisper and ComfyUI
 - hard GPU-only policy for queued requests
 - active VRAM release between Ollama, Whisper and ComfyUI
 - a browser landing page for GPU queue status, manual offload, Ollama tests, Whisper and ComfyUI workflow links
