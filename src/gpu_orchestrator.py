@@ -525,6 +525,7 @@ DASHBOARD_HTML = r"""<!doctype html>
       <nav class="site-nav" aria-label="Zen AI Hub Navigation">
         <a data-nav="hub" href="http://192.168.2.41:8191/">Hub</a>
         <a data-nav="queue" href="http://192.168.2.41:11435/status">GPU Queue</a>
+        <a data-nav="voice" href="http://192.168.2.41:8002/">Voice</a>
         <a data-nav="whisper" href="http://192.168.2.41:8000/">Whisper</a>
         <a data-nav="workspace" href="http://192.168.2.41:8001/?workspace=1">Workspace</a>
         <a data-nav="comfy" href="http://192.168.2.41:8188/" target="_blank" rel="noreferrer">ComfyUI</a>
@@ -537,6 +538,7 @@ DASHBOARD_HTML = r"""<!doctype html>
       const urls = {
         hub: `http://${host}:8191/`,
         queue: `http://${host}:11435/status`,
+        voice: `http://${host}:8002/`,
         whisper: `http://${host}:8000/`,
         workspace: `http://${host}:8001/?workspace=1`,
         comfy: `http://${host}:8188/`,

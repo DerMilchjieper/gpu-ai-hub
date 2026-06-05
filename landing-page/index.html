@@ -598,6 +598,7 @@
       <nav class="site-nav" aria-label="Zen AI Hub Navigation">
         <a data-nav="hub" href="http://192.168.2.41:8191/">Hub</a>
         <a data-nav="queue" href="http://192.168.2.41:11435/status">GPU Queue</a>
+        <a data-nav="voice" href="http://192.168.2.41:8002/">Voice</a>
         <a data-nav="whisper" href="http://192.168.2.41:8000/">Whisper</a>
         <a data-nav="workspace" href="http://192.168.2.41:8001/?workspace=1">Workspace</a>
         <a data-nav="comfy" href="http://192.168.2.41:8188/" target="_blank" rel="noreferrer">ComfyUI</a>
@@ -610,6 +611,7 @@
       const urls = {
         hub: `http://${host}:8191/`,
         queue: `http://${host}:11435/status`,
+        voice: `http://${host}:8002/`,
         whisper: `http://${host}:8000/`,
         workspace: `http://${host}:8001/?workspace=1`,
         comfy: `http://${host}:8188/`,
@@ -633,6 +635,7 @@
         <p class="lede">Zentrale Startseite fuer lokale KI-Jobs auf der RTX 3090: GPU-Queue, Ollama, Whisper und ComfyUI-Workflows. Schwere Jobs sollen ueber den Orchestrator laufen, damit nichts still auf CPU ausweicht.</p>
         <div class="hero-actions">
           <a class="button js-comfy-link" href="http://192.168.2.41:8188" target="_blank" rel="noreferrer">ComfyUI oeffnen</a>
+          <a class="button" id="voiceLink" href="http://192.168.2.41:8002" target="_blank" rel="noreferrer">Voice oeffnen</a>
           <a class="button" id="whisperLink" href="http://192.168.2.41:8000" target="_blank" rel="noreferrer">Whisper oeffnen</a>
           <a class="button secondary" id="queueLink" href="http://192.168.2.41:11435/status" target="_blank" rel="noreferrer">GPU Queue</a>
           <button class="secondary" data-copy="/home/wizzard/ai/comfyui/workflows">Workflow Ordner kopieren</button>
@@ -690,6 +693,24 @@
           <button class="button secondary" data-copy="http://192.168.2.41:11435/api/generate">API kopieren</button>
         </div>
         <div class="path" id="ollamaResult">Bereit.</div>
+      </article>
+
+
+      <article class="card" data-accent="green">
+        <div>
+          <h2>Voice</h2>
+          <p class="tagline">Lokale Offline-Sprachausgabe mit Piper TTS. Texte werden ohne Cloud als WAV erzeugt; XTTS/OpenVoice bleiben als naechste Ausbaustufe vorbereitet.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Engine</span><span>Piper</span></div>
+          <div class="fact"><span>Port</span><span>8002</span></div>
+          <div class="fact"><span>Stimmen</span><span>Deutsch/Englisch</span></div>
+          <div class="fact"><span>Cloud</span><span>aus</span></div>
+        </div>
+        <div class="actions">
+          <a class="button" id="voicePortalLink" href="http://192.168.2.41:8002" target="_blank" rel="noreferrer">Voice oeffnen</a>
+          <button class="button secondary" data-copy="http://192.168.2.41:8002/api/synthesize">API kopieren</button>
+        </div>
       </article>
 
       <article class="card" data-accent="green">
@@ -854,6 +875,7 @@
     const gpuQueueBase = `http://${host}:11435`;
     const gpuQueueDashboardUrl = `${gpuQueueBase}/status`;
     const gpuQueueUrl = `${gpuQueueBase}/api/status`;
+    const voiceUrl = `http://${host}:8002`;
     const whisperPortalUrl = `http://${host}:8000`;
     const whisperWorkspaceUrl = `http://${host}:8001/?workspace=1`;
 
@@ -871,6 +893,10 @@
       link.href = url.toString();
     });
 
+    ["voiceLink", "voicePortalLink"].forEach((id) => {
+      const link = document.getElementById(id);
+      if (link) link.href = voiceUrl;
+    });
     ["whisperLink", "whisperPortalLink"].forEach((id) => {
       const link = document.getElementById(id);
       if (link) link.href = whisperPortalUrl;
@@ -886,6 +912,9 @@
     });
     const copyOrchestratorBtn = document.getElementById("copyOrchestratorBtn");
     if (copyOrchestratorBtn) copyOrchestratorBtn.dataset.copy = gpuQueueBase;
+    document.querySelectorAll('[data-copy="http://192.168.2.41:8002/api/synthesize"]').forEach((button) => {
+      button.dataset.copy = `${voiceUrl}/api/synthesize`;
+    });
 
 
     async function refreshGpuQueue() {

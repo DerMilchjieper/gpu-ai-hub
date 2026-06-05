@@ -69,3 +69,22 @@ curl -s -X POST http://127.0.0.1:11435/api/generate \
 ## Notes
 
 This is intentionally local-first infrastructure. It does not manage cloud GPUs and it does not attempt CPU fallback.
+
+
+## Zen Voice / lokale TTS
+
+Der Hub enthaelt eine lokale Piper-TTS-Weboberflaeche auf Port `8002`. Sie nutzt `/home/wizzard/ai/tts/bin/piper` und die lokalen Stimmen unter `/home/wizzard/ai/tts/voices`, erzeugt WAV-Dateien in `/home/wizzard/ai/tts/outputs` und sendet keine Sprachdaten an Cloud-Dienste.
+
+Start als User-Service:
+
+```bash
+systemctl --user enable --now tts-portal.service
+```
+
+API-Beispiel:
+
+```bash
+curl -X POST http://127.0.0.1:8002/api/synthesize \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"Hallo aus Piper.","voice":"de_DE-thorsten-medium"}'
+```
