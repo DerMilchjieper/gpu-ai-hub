@@ -1,0 +1,19 @@
+[Unit]
+Description=GPU AI Request Orchestrator
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/wizzard/gpu-orchestrator
+Environment=GPU_ORCH_PORT=11435
+Environment=GPU_ORCH_GPU_INDEX=0
+Environment=GPU_ORCH_STRICT_OLLAMA_GPU=1
+Environment=GPU_ORCH_OLLAMA_MIN_FREE_MIB=2048
+Environment=GPU_ORCH_WHISPER_MIN_FREE_MIB=2500
+Environment=GPU_ORCH_COMFY_MIN_FREE_MIB=8192
+ExecStart=/usr/bin/python3 /home/wizzard/gpu-orchestrator/gpu_orchestrator.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

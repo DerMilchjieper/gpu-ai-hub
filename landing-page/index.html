@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ComfyUI Workflow Launcher</title>
+  <style>
+    :root {
+      --ink: #161817;
+      --muted: #5c645e;
+      --paper: #f5f1e8;
+      --panel: rgba(255, 252, 244, 0.86);
+      --line: rgba(22, 24, 23, 0.16);
+      --green: #1f7a5b;
+      --blue: #1b638f;
+      --clay: #b85b38;
+      --gold: #b18a21;
+      --shadow: 0 24px 70px rgba(20, 23, 21, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: ui-serif, Georgia, "Times New Roman", serif;
+      background:
+        linear-gradient(120deg, rgba(245, 241, 232, 0.96), rgba(224, 233, 224, 0.86)),
+        radial-gradient(circle at 18% 16%, rgba(184, 91, 56, 0.22), transparent 30%),
+        radial-gradient(circle at 86% 12%, rgba(31, 122, 91, 0.2), transparent 34%),
+        #ece6d8;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.36;
+      background-image:
+        linear-gradient(rgba(22, 24, 23, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(22, 24, 23, 0.045) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(to bottom, #000, transparent 82%);
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 28px 0 44px;
+    }
+
+    header {
+      min-height: 42vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
+      gap: 32px;
+      align-items: center;
+      padding: 20px 0 26px;
+    }
+
+    h1 {
+      max-width: 780px;
+      margin: 0;
+      font-size: clamp(44px, 7vw, 96px);
+      line-height: 0.9;
+      letter-spacing: 0;
+      font-weight: 800;
+    }
+
+    .lede {
+      max-width: 680px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-family: ui-sans-serif, "Aptos", "Segoe UI", sans-serif;
+      font-size: 18px;
+      line-height: 1.55;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 26px;
+    }
+
+    .mesh-stage {
+      position: relative;
+      min-height: 340px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, rgba(255, 252, 244, 0.74), rgba(213, 226, 215, 0.58)),
+        repeating-linear-gradient(35deg, rgba(22, 24, 23, 0.035), rgba(22, 24, 23, 0.035) 1px, transparent 1px, transparent 16px);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .mesh-stage::before,
+    .mesh-stage::after {
+      content: "";
+      position: absolute;
+      inset: 42px 56px;
+      border: 2px solid rgba(27, 99, 143, 0.32);
+      transform: skewY(-8deg) rotate(-8deg);
+    }
+
+    .mesh-stage::after {
+      inset: 88px 94px 64px 28px;
+      border-color: rgba(184, 91, 56, 0.36);
+      transform: skewY(9deg) rotate(11deg);
+    }
+
+    .mesh-form {
+      position: absolute;
+      inset: 62px 72px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      grid-template-rows: repeat(4, 1fr);
+      gap: 12px;
+      transform: perspective(680px) rotateX(58deg) rotateZ(-30deg);
+      transform-origin: center;
+    }
+
+    .mesh-form span {
+      border: 1px solid rgba(22, 24, 23, 0.18);
+      background: rgba(255, 252, 244, 0.48);
+      box-shadow: inset 0 0 28px rgba(31, 122, 91, 0.08);
+    }
+
+    .status-strip {
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      bottom: 22px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      font-family: ui-sans-serif, "Aptos", "Segoe UI", sans-serif;
+      font-size: 13px;
+    }
+
+    .status-strip div {
+      padding: 12px;
+      background: rgba(255, 252, 244, 0.82);
+      border: 1px solid var(--line);
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin: 6px 0 20px;
+      font-family: ui-sans-serif, "Aptos", "Segoe UI", sans-serif;
+    }
+
+    .metric {
+      padding: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 252, 244, 0.72);
+    }
+
+    .metric b {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .card {
+      display: grid;
+      gap: 18px;
+      padding: 20px;
+      min-height: 430px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: 0 18px 46px rgba(20, 23, 21, 0.1);
+      backdrop-filter: blur(12px);
+    }
+
+    .card[data-accent="green"] {
+      border-top: 6px solid var(--green);
+    }
+
+    .card[data-accent="blue"] {
+      border-top: 6px solid var(--blue);
+    }
+
+    .card[data-accent="clay"] {
+      border-top: 6px solid var(--clay);
+    }
+
+    .card[data-accent="gold"] {
+      border-top: 6px solid var(--gold);
+    }
+
+    .card h2 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .tagline {
+      margin: 0;
+      color: var(--muted);
+      font-family: ui-sans-serif, "Aptos", "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+
+    .facts {
+      display: grid;
+      gap: 8px;
+      font-family: ui-sans-serif, "Aptos", "Segoe UI", sans-serif;
+      font-size: 14px;
+    }
+
+    .fact {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .fact span:last-child {
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .path {
+      min-height: 58px;
+      padding: 10px 12px;
+      overflow-wrap: anywhere;
+      border: 1px solid var(--line);
+      background: rgba(22, 24, 23, 0.04);
+      color: #303531;
+      font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-self: end;
+    }
+
+    button,
+    a.button {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 15px;
+      border: 1px solid rgba(22, 24, 23, 0.2);
+      background: #171a18;
+      color: #fffaf0;
+      cursor: pointer;
+      text-decoration: none;
+      font-family: ui-sans-serif, "Aptos", "Segoe UI", sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    button.secondary,
+    a.secondary {
+      background: rgba(255, 252, 244, 0.86);
+      color: var(--ink);
+    }
+
+    button:hover,
+    a.button:hover {
+      transform: translateY(-2px);
+    }
+
+    .decision {
+      margin-top: 24px;
+      padding: 18px 20px;
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid var(--line);
+      background: rgba(255, 252, 244, 0.72);
+      font-family: ui-sans-serif, "Aptos", "Segoe UI", sans-serif;
+    }
+
+    .decision strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .decision span {
+      color: var(--muted);
+    }
+
+    @media (max-width: 900px) {
+      header,
+      .cards,
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        min-height: auto;
+      }
+
+      .mesh-stage {
+        min-height: 300px;
+      }
+
+      .status-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        min-height: auto;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .shell {
+        width: min(100% - 22px, 1180px);
+        padding-top: 16px;
+      }
+
+      h1 {
+        font-size: 42px;
+      }
+
+      .lede {
+        font-size: 16px;
+      }
+
+      .mesh-stage::before,
+      .mesh-stage::after {
+        inset: 34px;
+      }
+
+      .mesh-form {
+        inset: 56px 42px;
+      }
+
+      .decision {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      button,
+      a.button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <section>
+        <h1>KI Tool Hub</h1>
+        <p class="lede">Zentrale Startseite fuer lokale KI-Jobs auf der RTX 3090: GPU-Queue, Ollama, Whisper und ComfyUI-Workflows. Schwere Jobs sollen ueber den Orchestrator laufen, damit nichts still auf CPU ausweicht.</p>
+        <div class="hero-actions">
+          <a class="button js-comfy-link" href="http://192.168.2.41:8188" target="_blank" rel="noreferrer">ComfyUI oeffnen</a>
+          <a class="button" id="whisperLink" href="http://192.168.2.41:8000" target="_blank" rel="noreferrer">Whisper oeffnen</a>
+          <a class="button secondary" id="queueLink" href="http://192.168.2.41:11435/status" target="_blank" rel="noreferrer">GPU Queue</a>
+          <button class="secondary" data-copy="/home/wizzard/ai/comfyui/workflows">Workflow Ordner kopieren</button>
+        </div>
+      </section>
+      <aside class="mesh-stage" aria-label="3D workflow visual">
+        <div class="mesh-form" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="status-strip">
+          <div><strong>GPU</strong><br>RTX 3090, CUDA ready</div>
+          <div><strong>SF3D</strong><br>HF cache geladen</div>
+          <div><strong>TripoSR</strong><br>Checkpoint lokal</div>
+        </div>
+      </aside>
+    </header>
+
+    <section class="toolbar" aria-label="Systemstatus">
+      <div class="metric"><b>ComfyUI</b><span class="js-comfy-url">http://192.168.2.41:8188</span></div>
+      <div class="metric"><b>GPU Queue</b><span class="js-gpu-queue">Orchestrator wird geprueft...</span></div>
+      <div class="metric"><b>SF3D Cache</b><span>/home/wizzard/.cache/huggingface/hub/models--stabilityai--stable-fast-3d</span></div>
+      <div class="metric"><b>Wan2.2 Video</b><span>/home/wizzard/ai/comfyui/models/unet/wan2.2</span></div>
+    </section>
+
+    <section class="cards" aria-label="KI Tools">
+      <article class="card" data-accent="gold">
+        <div>
+          <h2>GPU Orchestrator</h2>
+          <p class="tagline">FIFO-Queue fuer lokale KI-Anfragen. Der Orchestrator gibt fremde GPU-Modelle frei und verhindert CPU-Fallback durch harte GPU-Policy.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Status</span><span class="js-gpu-queue">wird geladen</span></div>
+          <div class="fact"><span>Port</span><span>11435</span></div>
+          <div class="fact"><span>Policy</span><span>GPU-only</span></div>
+          <div class="fact"><span>Queue</span><span>FIFO</span></div>
+        </div>
+        <div class="path js-orchestrator-url">http://192.168.2.41:11435</div>
+        <div class="actions">
+          <a class="button" id="queueStatusLink" href="http://192.168.2.41:11435/status" target="_blank" rel="noreferrer">Status oeffnen</a>
+          <button class="button secondary" id="copyOrchestratorBtn" data-copy="http://192.168.2.41:11435">Endpoint kopieren</button>
+        </div>
+      </article>
+
+      <article class="card" data-accent="blue">
+        <div>
+          <h2>Ollama</h2>
+          <p class="tagline">Lokale LLM-Anfragen ueber die GPU-Queue. Direkte Clients sollten statt Port 11434 den Orchestrator auf 11435 verwenden.</p>
+        </div>
+        <textarea id="ollamaPrompt" rows="5" style="width:100%; border:1px solid rgba(255,255,255,0.12); border-radius:18px; padding:14px; background:rgba(255,255,255,0.04); color:inherit; font:inherit; resize:vertical;" placeholder="Kurzer Testprompt fuer qwen3:8b">Antworte in einem Satz: GPU Queue ist aktiv.</textarea>
+        <div class="actions">
+          <button class="button" id="ollamaTestBtn">Ollama testen</button>
+          <button class="button secondary" data-copy="http://192.168.2.41:11435/api/generate">API kopieren</button>
+        </div>
+        <div class="path" id="ollamaResult">Bereit.</div>
+      </article>
+
+      <article class="card" data-accent="green">
+        <div>
+          <h2>Whisper</h2>
+          <p class="tagline">Transkription bleibt GPU-only. Wenn CUDA nicht verfuegbar ist, soll der Job warten oder fehlschlagen, nicht auf CPU ausweichen.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Portal</span><span>8000</span></div>
+          <div class="fact"><span>Worker</span><span>8001</span></div>
+          <div class="fact"><span>Queue API</span><span>/whisper/api/...</span></div>
+          <div class="fact"><span>Fallback</span><span>CPU aus</span></div>
+        </div>
+        <div class="actions">
+          <a class="button" id="whisperPortalLink" href="http://192.168.2.41:8000" target="_blank" rel="noreferrer">Portal oeffnen</a>
+          <a class="button secondary" id="whisperWorkspaceLink" href="http://192.168.2.41:8001/?workspace=1" target="_blank" rel="noreferrer">Workspace</a>
+        </div>
+      </article>
+    </section>
+
+    <section class="cards" aria-label="Workflow Auswahl">
+      <article class="card" data-accent="gold">
+        <div>
+          <h2>Text zu Bild</h2>
+          <p class="tagline">Bereinigter Preload aus dem unsaved Workflow: gleicher Checkpoint, gleiche Sampler- und Aufloesungswerte, neutraler Konzeptbild-Prompt.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Input</span><span>Text Prompt</span></div>
+          <div class="fact"><span>Output</span><span>PNG</span></div>
+          <div class="fact"><span>Basis</span><span>Unsaved Workflow Struktur</span></div>
+          <div class="fact"><span>Status</span><span>gespeichert</span></div>
+        </div>
+        <div class="path">/home/wizzard/ai/comfyui/user/default/workflows/Text to Image Preload Clean.json</div>
+        <div class="actions">
+          <a class="button js-load-workflow" href="http://192.168.2.41:8188/?workflow_url=/extensions/workflow_preloader/workflows/text_to_image_preload_clean.json" data-workflow="/extensions/workflow_preloader/workflows/text_to_image_preload_clean.json" target="_blank" rel="noreferrer">In ComfyUI laden</a>
+          <a class="button secondary" href="./workflows/text_to_image_preload_clean.json">JSON ansehen</a>
+        </div>
+      </article>
+
+      <article class="card" data-accent="green">
+        <div>
+          <h2>SF3D GLB</h2>
+          <p class="tagline">Beste Wahl fuer fertige 3D-Assets mit GLB-Ausgabe, UVs und Texturen aus einem vorhandenen Konzeptbild.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Input</span><span>Bild + optional Maske</span></div>
+          <div class="fact"><span>Output</span><span>GLB</span></div>
+          <div class="fact"><span>Qualitaet</span><span>Texturiert</span></div>
+          <div class="fact"><span>Status</span><span>bereit</span></div>
+        </div>
+        <div class="path" id="sf3d-path">/home/wizzard/ai/comfyui/workflows/stable_fast_3d_image_to_3d.json</div>
+        <div class="actions">
+          <a class="button js-load-workflow" href="http://192.168.2.41:8188/?workflow_url=/extensions/workflow_preloader/workflows/stable_fast_3d_image_to_3d.json" data-workflow="/extensions/workflow_preloader/workflows/stable_fast_3d_image_to_3d.json" target="_blank" rel="noreferrer">In ComfyUI laden</a>
+          <a class="button secondary" href="./workflows/stable_fast_3d_image_to_3d.json">JSON ansehen</a>
+        </div>
+      </article>
+
+      <article class="card" data-accent="green">
+        <div>
+          <h2>Text zu SF3D</h2>
+          <p class="tagline">Der komplette Pfad: SDXL erzeugt eine saubere Konzeptgrafik, Background-Removal baut Bild und Maske, Stable Fast 3D speichert ein texturiertes GLB.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Input</span><span>Text Prompt</span></div>
+          <div class="fact"><span>Output</span><span>PNG + GLB</span></div>
+          <div class="fact"><span>Pipeline</span><span>Text -> Bild -> Maske -> Mesh</span></div>
+          <div class="fact"><span>Status</span><span>neu</span></div>
+        </div>
+        <div class="path">/home/wizzard/ai/comfyui/workflows/text_to_image_to_sf3d_glb.json</div>
+        <div class="actions">
+          <a class="button js-load-workflow" href="http://192.168.2.41:8188/?workflow_url=/extensions/workflow_preloader/workflows/text_to_image_to_sf3d_glb.json" data-workflow="/extensions/workflow_preloader/workflows/text_to_image_to_sf3d_glb.json" target="_blank" rel="noreferrer">In ComfyUI laden</a>
+          <a class="button secondary" href="./workflows/text_to_image_to_sf3d_glb.json">JSON ansehen</a>
+        </div>
+      </article>
+
+      <article class="card" data-accent="clay">
+        <div>
+          <h2>Text zu Video</h2>
+          <p class="tagline">Lokaler Text-zu-Video-Pfad: FLUX erzeugt ein Startbild, Wan2.2 Image-to-Video rendert daraus ein kurzes MP4.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Input</span><span>Text Prompt</span></div>
+          <div class="fact"><span>Output</span><span>PNG + MP4</span></div>
+          <div class="fact"><span>Pipeline</span><span>Text -> Startbild -> Video</span></div>
+          <div class="fact"><span>Status</span><span>neu</span></div>
+        </div>
+        <div class="path">/home/wizzard/ai/comfyui/workflows/text_to_image_to_wan_i2v_video.json</div>
+        <div class="actions">
+          <a class="button js-load-workflow" href="http://192.168.2.41:8188/?workflow_url=/extensions/workflow_preloader/workflows/text_to_image_to_wan_i2v_video.json" data-workflow="/extensions/workflow_preloader/workflows/text_to_image_to_wan_i2v_video.json" target="_blank" rel="noreferrer">In ComfyUI laden</a>
+          <a class="button secondary" href="./workflows/text_to_image_to_wan_i2v_video.json">JSON ansehen</a>
+        </div>
+      </article>
+
+      <article class="card" data-accent="blue">
+        <div>
+          <h2>Video Upscale</h2>
+          <p class="tagline">Zweiter Schritt nach WanVideo: MP4 laden, Frames auf Smartphone-2x hochskalieren und als hochwertigeres H.264-MP4 speichern.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Input</span><span>MP4 aus input/</span></div>
+          <div class="fact"><span>Output</span><span>768x1344 MP4</span></div>
+          <div class="fact"><span>Methode</span><span>Lanczos 2x</span></div>
+          <div class="fact"><span>Status</span><span>neu</span></div>
+        </div>
+        <div class="path">/home/wizzard/ai/comfyui/workflows/video_upscale_2x_lanczos.json</div>
+        <div class="actions">
+          <a class="button js-load-workflow" href="http://192.168.2.41:8188/?workflow_url=/extensions/workflow_preloader/workflows/video_upscale_2x_lanczos.json" data-workflow="/extensions/workflow_preloader/workflows/video_upscale_2x_lanczos.json" target="_blank" rel="noreferrer">In ComfyUI laden</a>
+          <a class="button secondary" href="./workflows/video_upscale_2x_lanczos.json">JSON ansehen</a>
+        </div>
+      </article>
+
+      <article class="card" data-accent="blue">
+        <div>
+          <h2>TripoSR OBJ</h2>
+          <p class="tagline">Schneller lokaler Fallback fuer Einzelbild-zu-3D. Gut zum Testen von Silhouetten und Formen.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Input</span><span>Bild</span></div>
+          <div class="fact"><span>Output</span><span>OBJ</span></div>
+          <div class="fact"><span>Qualitaet</span><span>Geometrie-first</span></div>
+          <div class="fact"><span>Status</span><span>bereit</span></div>
+        </div>
+        <div class="path">/home/wizzard/ai/comfyui/workflows/triposr_image_to_3d.json</div>
+        <div class="actions">
+          <a class="button js-load-workflow" href="http://192.168.2.41:8188/?workflow_url=/extensions/workflow_preloader/workflows/triposr_image_to_3d.json" data-workflow="/extensions/workflow_preloader/workflows/triposr_image_to_3d.json" target="_blank" rel="noreferrer">In ComfyUI laden</a>
+          <a class="button secondary" href="./workflows/triposr_image_to_3d.json">JSON ansehen</a>
+        </div>
+      </article>
+
+      <article class="card" data-accent="clay">
+        <div>
+          <h2>Prompt zu 3D</h2>
+          <p class="tagline">Ein kompletter Startpunkt: SDXL erzeugt die Konzeptgrafik, TripoSR baut daraus direkt ein Mesh.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Input</span><span>Text Prompt</span></div>
+          <div class="fact"><span>Output</span><span>Bild + OBJ</span></div>
+          <div class="fact"><span>Kontrolle</span><span>Zwischenbild sichtbar</span></div>
+          <div class="fact"><span>Status</span><span>bereit</span></div>
+        </div>
+        <div class="path">/home/wizzard/ai/comfyui/workflows/text_to_image_to_triposr_3d.json</div>
+        <div class="actions">
+          <a class="button js-load-workflow" href="http://192.168.2.41:8188/?workflow_url=/extensions/workflow_preloader/workflows/text_to_image_to_triposr_3d.json" data-workflow="/extensions/workflow_preloader/workflows/text_to_image_to_triposr_3d.json" target="_blank" rel="noreferrer">In ComfyUI laden</a>
+          <a class="button secondary" href="./workflows/text_to_image_to_triposr_3d.json">JSON ansehen</a>
+        </div>
+      </article>
+    </section>
+
+    <section class="decision">
+      <div>
+        <strong>Empfehlung</strong>
+        <span>Fuer 3D nimm "Text zu SF3D". Fuer Video nimm "Text zu Video"; der Workflow erzeugt zuerst ein sichtbares Startbild und rendert daraus ein MP4.</span>
+      </div>
+      <a class="button js-comfy-link" href="http://192.168.2.41:8188" target="_blank" rel="noreferrer">Starten</a>
+    </section>
+  </main>
+
+  <script>
+    const buttons = document.querySelectorAll("[data-copy]");
+    const comfyUrl = `http://${window.location.hostname || "192.168.2.41"}:8188`;
+    const host = window.location.hostname || "192.168.2.41";
+    const gpuQueueBase = `http://${host}:11435`;
+    const gpuQueueUrl = `${gpuQueueBase}/status`;
+    const whisperPortalUrl = `http://${host}:8000`;
+    const whisperWorkspaceUrl = `http://${host}:8001/?workspace=1`;
+
+    document.querySelectorAll(".js-comfy-link").forEach((link) => {
+      link.href = comfyUrl;
+    });
+
+    document.querySelectorAll(".js-comfy-url").forEach((target) => {
+      target.textContent = comfyUrl;
+    });
+
+    document.querySelectorAll(".js-load-workflow").forEach((link) => {
+      const url = new URL(comfyUrl);
+      url.searchParams.set("workflow_url", link.dataset.workflow);
+      link.href = url.toString();
+    });
+
+    ["whisperLink", "whisperPortalLink"].forEach((id) => {
+      const link = document.getElementById(id);
+      if (link) link.href = whisperPortalUrl;
+    });
+    const whisperWorkspaceLink = document.getElementById("whisperWorkspaceLink");
+    if (whisperWorkspaceLink) whisperWorkspaceLink.href = whisperWorkspaceUrl;
+    ["queueLink", "queueStatusLink"].forEach((id) => {
+      const link = document.getElementById(id);
+      if (link) link.href = gpuQueueUrl;
+    });
+    document.querySelectorAll(".js-orchestrator-url").forEach((target) => {
+      target.textContent = gpuQueueBase;
+    });
+    const copyOrchestratorBtn = document.getElementById("copyOrchestratorBtn");
+    if (copyOrchestratorBtn) copyOrchestratorBtn.dataset.copy = gpuQueueBase;
+
+
+    async function refreshGpuQueue() {
+      const target = document.querySelector(".js-gpu-queue");
+      if (!target) return;
+      try {
+        const response = await fetch(gpuQueueUrl);
+        const data = await response.json();
+        const gpu = data.gpu || {};
+        const current = data.current_job ? `${data.current_job.service} ${data.current_job.status}` : "idle";
+        target.textContent = `${current}, Queue ${data.queue_depth}, VRAM frei ${gpu.memory_free_mib || "?"} MiB`;
+      } catch {
+        target.textContent = "Orchestrator nicht erreichbar";
+      }
+    }
+
+    refreshGpuQueue();
+    window.setInterval(refreshGpuQueue, 5000);
+
+    async function runOllamaTest() {
+      const button = document.getElementById("ollamaTestBtn");
+      const prompt = document.getElementById("ollamaPrompt");
+      const result = document.getElementById("ollamaResult");
+      if (!button || !prompt || !result) return;
+      const previous = button.textContent;
+      button.disabled = true;
+      button.textContent = "Queue laeuft...";
+      result.textContent = "Warte auf GPU-Queue...";
+      try {
+        const response = await fetch(`${gpuQueueBase}/api/generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "qwen3:8b",
+            prompt: prompt.value,
+            stream: false,
+            options: { num_predict: 80 }
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+        result.textContent = (data.response || data.thinking || "Antwort erhalten.").trim();
+      } catch (error) {
+        result.textContent = `Fehler: ${error.message}`;
+      } finally {
+        button.disabled = false;
+        button.textContent = previous;
+        refreshGpuQueue();
+      }
+    }
+
+    const ollamaTestBtn = document.getElementById("ollamaTestBtn");
+    if (ollamaTestBtn) ollamaTestBtn.addEventListener("click", runOllamaTest);
+
+    async function copyText(value, button) {
+      try {
+        await navigator.clipboard.writeText(value);
+        const previous = button.textContent;
+        button.textContent = "Kopiert";
+        window.setTimeout(() => {
+          button.textContent = previous;
+        }, 1200);
+      } catch {
+        window.prompt("Pfad", value);
+      }
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => copyText(button.dataset.copy, button));
+    });
+  </script>
+</body>
+</html>
