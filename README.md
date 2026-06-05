@@ -33,7 +33,7 @@ The orchestrator queues POST requests and checks free VRAM with `nvidia-smi` bef
 - non-Whisper jobs call Whisper `/api/deactivate`
 - non-Comfy jobs call ComfyUI `/free`
 
-For Ollama, strict mode checks `ollama ps` after requests and rejects results if a model is not reported as `100% GPU`. Auto-offload is enabled by default and unloads the service model after each queued job. The dashboard also exposes an `Alles entladen` button backed by `POST /api/offload`.
+For Ollama, strict mode checks `ollama ps` after requests and rejects results if a model is not reported as `100% GPU`. Auto-offload is enabled by default and unloads the service model after each queued job. The dashboard exposes `Alles entladen` backed by `POST /api/offload`, plus service-specific buttons for `POST /api/offload/ollama`, `POST /api/offload/whisper`, and `POST /api/offload/comfy`. ComfyUI itself only exposes global model unload through `/free`; single-checkpoint unload requires a ComfyUI extension.
 
 Whisper should be configured with CPU fallback disabled. In the companion local setup this means `WHISPER_CPU_FALLBACK=0`.
 

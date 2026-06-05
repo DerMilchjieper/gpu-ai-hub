@@ -418,6 +418,9 @@ DASHBOARD_HTML = r"""<!doctype html>
     </div>
     <div class="actions">
       <a href="/api/status">JSON</a>
+      <button id="offloadComfyBtn">ComfyUI entladen</button>
+      <button id="offloadOllamaBtn">Ollama entladen</button>
+      <button id="offloadWhisperBtn">Whisper entladen</button>
       <button id="offloadBtn">Alles entladen</button>
       <button id="refreshBtn">Aktualisieren</button>
     </div>
@@ -504,13 +507,13 @@ DASHBOARD_HTML = r"""<!doctype html>
     const jobs = data.completed_recent || [];
     document.getElementById('jobs').innerHTML = jobs.length ? jobs.map((job) => row([job.status, job.service, `<code>${job.path}</code>`, `${job.wait_sec ?? '-'}s`, `${job.run_sec ?? '-'}s`, job.error || ''])).join('') : row(['-', '-', 'Noch keine Jobs seit Service-Start', '-', '-', '']);
   }
-  async function offloadNow() {
-    const button = document.getElementById('offloadBtn');
+  async function offloadEndpoint(buttonId, endpoint) {
+    const button = document.getElementById(buttonId);
     const oldText = button.textContent;
     button.disabled = true;
     button.textContent = 'Entlade...';
     try {
-      const response = await fetch('/api/offload', { method: 'POST' });
+      const response = await fetch(endpoint, { method: 'POST' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       await refresh();
     } finally {
@@ -519,7 +522,10 @@ DASHBOARD_HTML = r"""<!doctype html>
     }
   }
   document.getElementById('refreshBtn').addEventListener('click', refresh);
-  document.getElementById('offloadBtn').addEventListener('click', offloadNow);
+  document.getElementById('offloadBtn').addEventListener('click', () => offloadEndpoint('offloadBtn', '/api/offload'));
+  document.getElementById('offloadComfyBtn').addEventListener('click', () => offloadEndpoint('offloadComfyBtn', '/api/offload/comfy'));
+  document.getElementById('offloadOllamaBtn').addEventListener('click', () => offloadEndpoint('offloadOllamaBtn', '/api/offload/ollama'));
+  document.getElementById('offloadWhisperBtn').addEventListener('click', () => offloadEndpoint('offloadWhisperBtn', '/api/offload/whisper'));
   refresh();
   setInterval(refresh, 3000);
 </script>
@@ -619,6 +625,27 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 offload_all()
                 self._json(200, {"status": "ok", "detail": "all models offloaded", "gpu": gpu_snapshot()})
+            except Exception as exc:
+                self._json(503, {"status": "error", "detail": str(exc), "gpu": gpu_snapshot()})
+            return
+        if split.path == "/api/offload/ollama":
+            try:
+                offload_ollama()
+                self._json(200, {"status": "ok", "detail": "ollama models offloaded", "gpu": gpu_snapshot()})
+            except Exception as exc:
+                self._json(503, {"status": "error", "detail": str(exc), "gpu": gpu_snapshot()})
+            return
+        if split.path == "/api/offload/whisper":
+            try:
+                offload_whisper()
+                self._json(200, {"status": "ok", "detail": "whisper model offloaded", "gpu": gpu_snapshot()})
+            except Exception as exc:
+                self._json(503, {"status": "error", "detail": str(exc), "gpu": gpu_snapshot()})
+            return
+        if split.path == "/api/offload/comfy":
+            try:
+                offload_comfy()
+                self._json(200, {"status": "ok", "detail": "comfyui models offloaded", "gpu": gpu_snapshot()})
             except Exception as exc:
                 self._json(503, {"status": "error", "detail": str(exc), "gpu": gpu_snapshot()})
             return
