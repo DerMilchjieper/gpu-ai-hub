@@ -407,7 +407,55 @@ DASHBOARD_HTML = r"""<!doctype html>
     a, button { color:var(--text); background:#17283a; border:1px solid var(--line); border-radius:10px; padding:10px 12px; text-decoration:none; font:inherit; cursor:pointer; }
     @media (max-width:900px) { header { flex-direction:column; } .grid { grid-template-columns:1fr 1fr; } .actions { justify-content:flex-start; } }
     @media (max-width:560px) { .grid { grid-template-columns:1fr; } }
-  </style>
+  
+
+    /* Zen AI Hub unified control theme. */
+    :root {
+      color-scheme: dark;
+      --bg:#090d12;
+      --panel:rgba(16,22,29,.94);
+      --panel-strong:rgba(20,28,37,.98);
+      --line:rgba(150,171,194,.22);
+      --text:#eef4fb;
+      --muted:#9aaabd;
+      --ok:#55d6bd;
+      --warn:#f6c36d;
+      --bad:#ff7b72;
+      --shadow:0 18px 42px rgba(0,0,0,.34);
+      --radius:8px;
+    }
+    body {
+      font-family:"Segoe UI", Inter, ui-sans-serif, sans-serif;
+      background:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px),
+        linear-gradient(180deg,#090d12 0%,#07090d 100%);
+      background-size:32px 32px,32px 32px,auto;
+    }
+    main { width:min(1240px, calc(100vw - 36px)); padding:28px 0 48px; }
+    h1 { font-size:clamp(38px,5vw,72px); letter-spacing:0; line-height:.95; }
+    .sub { color:var(--muted); font-size:17px; }
+    .grid { grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; }
+    .card, table {
+      border-color:var(--line);
+      background:var(--panel);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+    .card { min-height:112px; padding:16px; }
+    .value { font-size:26px; }
+    .bar { background:rgba(255,255,255,.055); border-color:var(--line); border-radius:8px; }
+    .fill { background:linear-gradient(90deg,var(--ok),var(--warn)); }
+    .pill, a, button {
+      border-color:var(--line);
+      border-radius:8px;
+      background:rgba(255,255,255,.055);
+      color:var(--text);
+    }
+    a:hover, button:hover { background:#20354a; }
+    th,td { border-bottom-color:rgba(150,171,194,.16); }
+    code { color:#c4d1df; }
+</style>
 </head>
 <body>
 <main>
