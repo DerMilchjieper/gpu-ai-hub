@@ -126,15 +126,26 @@ HTML = r'''<!doctype html>
 <body data-page="voice">
   <div class="site-menu">
     <div class="site-menu-inner">
-      <a class="site-brand" href="/">Zen AI Hub</a>
-      <nav class="site-nav">
-        <a href="/">Hub</a>
-        <a href="/queue">Queue</a>
-        <a data-current="1" href="/voice">Voice</a>
-        <a href="/whisper">Whisper</a>
+      <a class="site-brand" data-nav="hub" href="http://192.168.2.41:8191/">Zen AI Hub</a>
+      <nav class="site-nav" aria-label="Zen AI Hub Navigation">
+        <a data-nav="hub" href="http://192.168.2.41:8191/">Hub</a>
+        <a data-nav="queue" href="http://192.168.2.41:11435/status">GPU Queue</a>
+        <a data-nav="voice" href="http://192.168.2.41:8002/">Voice Pro</a>
+        <a data-nav="whisper" href="http://192.168.2.41:8000/">Whisper</a>
+        <a data-nav="workspace" href="http://192.168.2.41:8001/?workspace=1">Workspace</a>
+        <a data-nav="comfy" href="http://192.168.2.41:8188/" target="_blank" rel="noreferrer">ComfyUI</a>
       </nav>
     </div>
   </div>
+  <script>
+    (() => {
+      const host = window.location.hostname || "192.168.2.41";
+      const urls = { hub: `http://${host}:8191/`, queue: `http://${host}:11435/status`, voice: `http://${host}:8002/`, whisper: `http://${host}:8000/`, workspace: `http://${host}:8001/?workspace=1`, comfy: `http://${host}:8188/` };
+      document.querySelectorAll("[data-nav]").forEach((link) => { const key = link.dataset.nav; if (urls[key]) link.href = urls[key]; });
+      const active = document.body.dataset.page;
+      document.querySelectorAll(`[data-nav="${active}"]`).forEach((link) => { link.dataset.current = "1"; });
+    })();
+  </script>
   <main class="shell">
     <header>
       <section class="panel hero">
