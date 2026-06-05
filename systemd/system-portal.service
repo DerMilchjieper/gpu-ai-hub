@@ -1,0 +1,14 @@
+[Unit]
+Description=Zen System Dashboard
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/wizzard/gpu-ai-hub/src
+ExecStart=/home/wizzard/whisper-env/bin/uvicorn system_portal:app --host 0.0.0.0 --port 8008
+Restart=always
+RestartSec=2
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target
