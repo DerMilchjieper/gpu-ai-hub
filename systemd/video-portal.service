@@ -1,0 +1,14 @@
+[Unit]
+Description=Zen Video Lab
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/wizzard/gpu-ai-hub/src
+ExecStart=/home/wizzard/ai/video/venv/bin/uvicorn video_portal:app --host 0.0.0.0 --port 8005
+Restart=always
+RestartSec=2
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

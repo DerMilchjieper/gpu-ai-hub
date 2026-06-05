@@ -601,6 +601,7 @@
         <a data-nav="vision" href="http://192.168.2.41:8003/">Vision</a>
         <a data-nav="voice" href="http://192.168.2.41:8002/">Voice Pro</a>
         <a data-nav="docs" href="http://192.168.2.41:8004/">Docs</a>
+        <a data-nav="video" href="http://192.168.2.41:8005/">Video Lab</a>
         <a data-nav="whisper" href="http://192.168.2.41:8000/">Whisper</a>
         <a data-nav="workspace" href="http://192.168.2.41:8001/?workspace=1">Workspace</a>
         <a data-nav="comfy" href="http://192.168.2.41:8188/" target="_blank" rel="noreferrer">ComfyUI</a>
@@ -616,6 +617,7 @@
         vision: `http://${host}:8003/`,
         voice: `http://${host}:8002/`,
         docs: `http://${host}:8004/`,
+        video: `http://${host}:8005/`,
         whisper: `http://${host}:8000/`,
         workspace: `http://${host}:8001/?workspace=1`,
         comfy: `http://${host}:8188/`,
@@ -642,6 +644,7 @@
           <a class="button" id="docsLink" href="http://192.168.2.41:8004" target="_blank" rel="noreferrer">Docs oeffnen</a>
           <a class="button" id="visionLink" href="http://192.168.2.41:8003" target="_blank" rel="noreferrer">Vision oeffnen</a>
           <a class="button" id="voiceLink" href="http://192.168.2.41:8002" target="_blank" rel="noreferrer">Voice Pro oeffnen</a>
+          <a class="button" id="videoLink" href="http://192.168.2.41:8005" target="_blank" rel="noreferrer">Video Lab oeffnen</a>
           <a class="button" id="whisperLink" href="http://192.168.2.41:8000" target="_blank" rel="noreferrer">Whisper oeffnen</a>
           <a class="button secondary" id="queueLink" href="http://192.168.2.41:11435/status" target="_blank" rel="noreferrer">GPU Queue</a>
           <button class="secondary" data-copy="/home/wizzard/ai/comfyui/workflows">Workflow Ordner kopieren</button>
@@ -747,6 +750,22 @@
         <div class="actions">
           <a class="button" id="voicePortalLink" href="http://192.168.2.41:8002" target="_blank" rel="noreferrer">Voice Pro oeffnen</a>
           <button class="button secondary" data-copy="http://192.168.2.41:8002/api/synthesize">API kopieren</button>
+        </div>
+      </article>
+
+      <article class="card" data-accent="clay">
+        <div>
+          <h2>Video Lab</h2>
+          <p class="tagline">Schnelle lokale Videoverarbeitung. Komprimiere Clips für Social Media, extrahiere Audio oder bereite Videos für KI-Upscaling vor. Alles via FFMPEG.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Engine</span><span>FFMPEG</span></div>
+          <div class="fact"><span>Port</span><span>8005</span></div>
+          <div class="fact"><span>Aktionen</span><span>Compress/Extract</span></div>
+          <div class="fact"><span>GPU</span><span>NVENC Hardware</span></div>
+        </div>
+        <div class="actions">
+          <a class="button" id="videoPortalLink" href="http://192.168.2.41:8005" target="_blank" rel="noreferrer">Video Lab oeffnen</a>
         </div>
       </article>
 
