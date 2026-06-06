@@ -1,0 +1,14 @@
+[Unit]
+Description=Zen Audio Portal (MusicGen)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/wizzard/gpu-ai-hub/src
+ExecStart=/home/wizzard/ai/audio_gen/venv/bin/uvicorn audio_portal:app --host 0.0.0.0 --port 8010
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

@@ -37,12 +37,14 @@ TARGETS = {
     "ollama": os.getenv("GPU_ORCH_OLLAMA", "http://127.0.0.1:11434"),
     "whisper": os.getenv("GPU_ORCH_WHISPER", "http://127.0.0.1:8001"),
     "comfy": os.getenv("GPU_ORCH_COMFY", "http://127.0.0.1:8188"),
+    "audio": os.getenv("GPU_ORCH_AUDIO", "http://127.0.0.1:8010"), # Internal port for audio worker
 }
 
 MIN_FREE_MIB = {
     "ollama": int(os.getenv("GPU_ORCH_OLLAMA_MIN_FREE_MIB", "16384")),
     "whisper": int(os.getenv("GPU_ORCH_WHISPER_MIN_FREE_MIB", "4096")),
     "comfy": int(os.getenv("GPU_ORCH_COMFY_MIN_FREE_MIB", "8192")),
+    "audio": int(os.getenv("GPU_ORCH_AUDIO_MIN_FREE_MIB", "6144")),
 }
 
 STATE_LOCK = threading.Lock()
@@ -262,6 +264,13 @@ def offload_comfy() -> None:
         pass
 
 
+def offload_audio() -> None:
+    try:
+        requests.post(TARGETS["audio"].rstrip("/") + "/api/offload", timeout=20)
+    except Exception:
+        pass
+
+
 def release_other_gpu_users(service: str) -> None:
     if service != "ollama":
         offload_ollama()
@@ -269,12 +278,15 @@ def release_other_gpu_users(service: str) -> None:
         offload_whisper()
     if service != "comfy":
         offload_comfy()
+    if service != "audio":
+        offload_audio()
 
 
 def offload_all() -> None:
     offload_ollama()
     offload_whisper()
     offload_comfy()
+    offload_audio()
 
 
 def offload_after_job(service: str) -> None:
@@ -288,6 +300,8 @@ def offload_after_job(service: str) -> None:
         offload_whisper()
     elif service == "comfy":
         offload_comfy()
+    elif service == "audio":
+        offload_audio()
 
 
 def assert_no_ollama_cpu_offload() -> None:
@@ -323,6 +337,8 @@ def classify(path: str) -> tuple[str | None, str]:
         return "whisper", path.removeprefix("/whisper") or "/"
     if path.startswith("/comfy/"):
         return "comfy", path.removeprefix("/comfy") or "/"
+    if path.startswith("/audio/"):
+        return "audio", "/api/internal" + (path.removeprefix("/audio") or "/")
     return None, path
 
 
