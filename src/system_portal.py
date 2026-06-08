@@ -110,7 +110,7 @@ HTML = r'''<!doctype html>
   <div class="site-menu">
     <div class="site-menu-inner">
       <a class="site-brand" data-nav="hub" href="http://192.168.2.41:8191/">Zen AI Hub</a>
-                  <nav class="site-nav" aria-label="Zen AI Hub Navigation">
+                        <nav class="site-nav" aria-label="Zen AI Hub Navigation">
         <a data-nav="hub" href="http://192.168.2.41:8191/">Hub</a>
         <a data-nav="gallery" href="http://192.168.2.41:8009/">Gallery</a>
         <a data-nav="audio" href="http://192.168.2.41:8010/">Audio</a>
