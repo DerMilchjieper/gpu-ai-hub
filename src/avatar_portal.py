@@ -66,15 +66,31 @@ HTML = r'''<!doctype html>
   <div class="site-menu">
     <div class="site-menu-inner">
       <a class="site-brand" data-nav="hub" href="http://192.168.2.41:8191/">Zen AI Hub</a>
-      <nav class="site-nav" aria-label="Zen AI Hub Navigation">
-        <!-- Will be filled by dynamic script -->
+            <nav class="site-nav" aria-label="Zen AI Hub Navigation">
+        <a data-nav="hub" href="http://192.168.2.41:8191/">Hub</a>
+        <a data-nav="gallery" href="http://192.168.2.41:8009/">Gallery</a>
+        <a data-nav="avatar" href="http://192.168.2.41:8013/">Avatar Live</a>
+        <a data-nav="voice_live" href="http://192.168.2.41:8015/">Voice Live</a>
+        <a data-nav="prompt" href="http://192.168.2.41:8012/">Prompt Expert</a>
+        <a data-nav="system" href="http://192.168.2.41:8008/">System</a>
+        <a data-nav="queue" href="http://192.168.2.41:11435/status">GPU Queue</a>
+        <a data-nav="vision" href="http://192.168.2.41:8003/">Vision</a>
+        <a data-nav="voice" href="http://192.168.2.41:8002/">Voice Pro</a>
+        <a data-nav="docs" href="http://192.168.2.41:8004/">Docs</a>
+        <a data-nav="video" href="http://192.168.2.41:8005/">Video Lab</a>
+        <a data-nav="coder" href="http://192.168.2.41:8006/">Coder</a>
+        <a data-nav="auto" href="http://192.168.2.41:8007/">Automator</a>
+        <a data-nav="n8n" href="http://192.168.2.41:5678/" target="_blank" rel="noreferrer">n8n</a>
+        <a data-nav="whisper" href="http://192.168.2.41:8000/">Whisper</a>
+        <a data-nav="workspace" href="http://192.168.2.41:8001/?workspace=1">Workspace</a>
+        <a data-nav="comfy" href="http://192.168.2.41:8188/" target="_blank" rel="noreferrer">ComfyUI</a>
       </nav>
     </div>
   </div>
   <script>
     (() => {
       const host = window.location.hostname || "192.168.2.41";
-      const urls = { hub: `http://${host}:8191/`, gallery: `http://${host}:8009/`, audio: `http://${host}:8010/`, system: `http://${host}:8008/`, queue: `http://${host}:11435/status`, vision: `http://${host}:8003/`, voice: `http://${host}:8002/`, docs: `http://${host}:8004/`, video: `http://${host}:8005/`, coder: `http://${host}:8006/`, auto: `http://${host}:8007/`, prompt: `http://${host}:8012/`, avatar: `http://${host}:8013/`, n8n: `http://${host}:5678/`, whisper: `http://${host}:8000/`, workspace: `http://${host}:8001/?workspace=1`, comfy: `http://${host}:8188/` };
+      const urls = { hub: `http://${host}:8191/`, gallery: `http://${host}:8009/`, audio: `http://${host}:8010/`, system: `http://${host}:8008/`, queue: `http://${host}:11435/status`, vision: `http://${host}:8003/`, voice: `http://${host}:8002/`, docs: `http://${host}:8004/`, video: `http://${host}:8005/`, coder: `http://${host}:8006/`, auto: `http://${host}:8007/`, prompt: `http://${host}:8012/`, avatar: `http://${host}:8013/`, voice_live: `http://${host}:8015/`, n8n: `http://${host}:5678/`, whisper: `http://${host}:8000/`, workspace: `http://${host}:8001/?workspace=1`, comfy: `http://${host}:8188/` };
       const nav = document.querySelector(".site-nav");
       const links = [
         {id: "hub", label: "Hub"},
@@ -118,12 +134,14 @@ HTML = r'''<!doctype html>
     
     <div class="alert" style="margin-bottom: 20px;">
       <strong>WICHTIG für den Webcam-Zugriff:</strong><br>
-      Da dieser Hub im lokalen Netzwerk (HTTP) läuft, blockieren Chrome und Edge standardmäßig den Zugriff auf Kamera und Mikrofon (WebRTC erfordert HTTPS).<br><br>
-      <strong>So erlaubst du den Zugriff:</strong><br>
-      1. Öffne einen neuen Tab und gib ein: <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code> (oder edge://flags...)<br>
-      2. Trage in das Textfeld deine Hub-IP ein: <code>http://192.168.2.41</code><br>
-      3. Stelle das Dropdown daneben auf <strong>"Enabled"</strong> und klicke auf "Relaunch" (Browser neu starten).<br>
-      Danach funktioniert das Live-Klonen perfekt!
+      Da dieser Hub im lokalen Netzwerk (HTTP) läuft, blockiert der Browser (Chrome/Edge) den Kamera-Zugriff aus Sicherheitsgründen.<br><br>
+      <strong>Lösung (Einmalig auf dem Laptop):</strong><br>
+      1. Öffne <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code><br>
+      2. Trage exakt dies ein (mit Komma getrennt):<br>
+      <code>http://192.168.2.41:8013, http://192.168.2.41:8014</code><br>
+      3. Rechts daneben auf <strong>"Enabled"</strong> stellen.<br>
+      4. Unten auf <strong>"Relaunch"</strong> klicken.<br><br>
+      <em>Hinweis: Wenn es dann immer noch nicht geht, prüfe ob eine andere App (Zoom/Teams) die Kamera blockiert.</em>
     </div>
 
     <section>
