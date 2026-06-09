@@ -655,6 +655,8 @@
           <a class="button js-comfy-link" href="http://192.168.2.41:8188" target="_blank" rel="noreferrer">ComfyUI oeffnen</a>
           <a class="button" id="docsLink" href="http://192.168.2.41:8004" target="_blank" rel="noreferrer">Docs oeffnen</a>
           <a class="button" id="coderLink" href="http://192.168.2.41:8006" target="_blank" rel="noreferrer">Coder oeffnen</a>
+          <a class="button" id="promptLink" href="http://192.168.2.41:8012" target="_blank" rel="noreferrer">Prompter oeffnen</a>
+          <a class="button" id="vibeLink" href="http://192.168.2.41:8016" target="_blank" rel="noreferrer">Zen Vibe oeffnen</a>
           <a class="button" id="avatarLink" href="http://192.168.2.41:8013" target="_blank" rel="noreferrer">Avatar Live oeffnen</a>
           <a class="button" id="voiceLiveLink" href="http://192.168.2.41:8015" target="_blank" rel="noreferrer">Voice Live oeffnen</a>
           <a class="button" id="visionLink" href="http://192.168.2.41:8003" target="_blank" rel="noreferrer">Vision oeffnen</a>
@@ -690,8 +692,41 @@
       <div class="metric"><b>Wan2.2 Video</b><span>/home/wizzard/ai/comfyui/models/unet/wan2.2</span></div>
     </section>
 
-    <section class="cards" aria-label="KI Tools">
+    <section class="cards" aria-label="Tools">
       <article class="card" data-accent="gold">
+        <div>
+          <h2>Zen Vibe</h2>
+          <p class="tagline">Long-Form Zero-Shot Voice Cloning via F5-TTS. Klone Stimmen mit 10s Referenz fuer Podcasts und hoerbuch-lange Texte ohne Halluzinationen.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Engine</span><span>F5-TTS (Diffusion)</span></div>
+          <div class="fact"><span>Referenz</span><span>10 Sekunden</span></div>
+          <div class="fact"><span>Port</span><span>8016</span></div>
+          <div class="fact"><span>GPU</span><span>Queue-gesteuert</span></div>
+        </div>
+        <div class="actions">
+          <a class="button" id="vibePortalLink" href="http://192.168.2.41:8016" target="_blank" rel="noreferrer">Zen Vibe oeffnen</a>
+        </div>
+      </article>
+
+      <article class="card" data-accent="gold">
+        <div>
+          <h2>Prompt Expert</h2>
+          <p class="tagline">Meistere ComfyUI Prompts. Erzaehle deine Idee in natürlicher Sprache und erhalte optimierte Prompts für FLUX, SDXL oder Wan2.2 Video.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Engine</span><span>Qwen3 Expert</span></div>
+          <div class="fact"><span>Modelle</span><span>FLUX / SDXL / Wan</span></div>
+          <div class="fact"><span>Port</span><span>8012</span></div>
+          <div class="fact"><span>Copy</span><span>One-Click</span></div>
+        </div>
+        <div class="actions">
+          <a class="button" id="promptPortalLink" href="http://192.168.2.41:8012" target="_blank" rel="noreferrer">Prompter oeffnen</a>
+        </div>
+      </article>
+
+      <article class="card" data-accent="blue">
+
         <div>
           <h2>GPU Orchestrator</h2>
           <p class="tagline">FIFO-Queue fuer lokale KI-Anfragen. Der Orchestrator gibt fremde GPU-Modelle frei und verhindert CPU-Fallback durch harte GPU-Policy.</p>

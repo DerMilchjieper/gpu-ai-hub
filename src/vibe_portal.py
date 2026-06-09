@@ -1,45 +1,35 @@
+import json
 import os
+import subprocess
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import requests
-import torch
-from fastapi import Body, FastAPI, HTTPException, BackgroundTasks
+from fastapi import Body, FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, FileResponse
-from scipy.io.wavfile import write
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
 # GPU Orchestrator config
-ORCHESTRATOR_URL = "http://127.0.0.1:11435/audio/generate"
-INTERNAL_PORT = 8010
+ORCHESTRATOR_URL = "http://127.0.0.1:11435/vibe/generate"
 
-AUDIO_ROOT = Path("/home/wizzard/ai/audio_gen")
-OUTPUT_DIR = AUDIO_ROOT / "outputs"
+VIBE_ROOT = Path("/home/wizzard/ai/vibevoice")
+OUTPUT_DIR = VIBE_ROOT / "outputs"
+SPEAKER_DIR = VIBE_ROOT / "speakers"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
-# Global model state
-MODEL = None
-PROCESSOR = None
-
-def get_model():
-    global MODEL, PROCESSOR
-    if MODEL is None:
-        from transformers import MusicgenForConditionalGeneration, AutoProcessor
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"Loading MusicGen model on {device}...")
-        PROCESSOR = AutoProcessor.from_pretrained("facebook/musicgen-small")
-        MODEL = MusicgenForConditionalGeneration.from_pretrained("facebook/musicgen-small").to(device)
-    return MODEL, PROCESSOR
+SPEAKER_DIR.mkdir(parents=True, exist_ok=True)
+VENV_PYTHON = str(VIBE_ROOT / "venv/bin/python")
+F5_CLI = str(VIBE_ROOT / "venv/bin/f5-tts_infer-cli")
 
 HTML = r'''<!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Zen Audio</title>
+  <title>Zen Vibe</title>
   <style>
     :root {
       color-scheme: dark;
@@ -83,7 +73,7 @@ HTML = r'''<!doctype html>
     h1 { margin: 12px 0 14px; font-size: clamp(38px, 5vw, 64px); line-height: 0.95; letter-spacing: 0; }
     p { color: var(--muted); line-height: 1.6; margin: 0; }
     .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(350px, 0.7fr); gap: 14px; }
-    .card { padding: 18px; display: grid; gap: 14px; }
+    .card { padding: 18px; display: grid; gap: 14px; align-content: start; }
     label { display: grid; gap: 8px; color: var(--muted); font-size: 14px; font-weight: 700; }
     textarea, select, input[type="text"], input[type="range"] { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,0.045); color: var(--text); padding: 12px 14px; font: inherit; }
     .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
@@ -91,16 +81,16 @@ HTML = r'''<!doctype html>
     .primary { background: #1f8f7a; color: #06100e; border-color: rgba(85,214,189,0.55); }
     button:disabled { opacity: 0.5; cursor: wait; }
     .badge { display: inline-flex; align-items: center; width: fit-content; padding: 7px 10px; border-radius: 8px; background: rgba(85,214,189,0.13); color: var(--brand); font-size: 13px; font-weight: 800; }
-    .status { color: var(--muted); min-height: 24px; }
+    .status { color: var(--muted); min-height: 24px; font-size: 13px; }
     audio { width: 100%; margin-top: 10px; }
     @media (max-width: 900px) { header, .grid { grid-template-columns: 1fr; } }
   </style>
 </head>
-<body data-page="audio">
+<body data-page="vibe">
   <div class="site-menu">
     <div class="site-menu-inner">
       <a class="site-brand" data-nav="hub" href="http://192.168.2.41:8191/">Zen AI Hub</a>
-                                                <nav class="site-nav" aria-label="Zen AI Hub Navigation">
+                  <nav class="site-nav" aria-label="Zen AI Hub Navigation">
         <a data-nav="hub" href="http://192.168.2.41:8191/">Hub</a>
         <a data-nav="gallery" href="http://192.168.2.41:8009/">Gallery</a>
         <a data-nav="avatar" href="http://192.168.2.41:8013/">Avatar Live</a>
@@ -126,30 +116,53 @@ HTML = r'''<!doctype html>
     (() => {
       const host = window.location.hostname || "192.168.2.41";
       const urls = { hub: `http://${host}:8191/`, gallery: `http://${host}:8009/`, audio: `http://${host}:8010/`, system: `http://${host}:8008/`, queue: `http://${host}:11435/status`, vision: `http://${host}:8003/`, vibe: `http://${host}:8016/`, voice: `http://${host}:8002/`, docs: `http://${host}:8004/`, video: `http://${host}:8005/`, coder: `http://${host}:8006/`, auto: `http://${host}:8007/`, prompt: `http://${host}:8012/`, avatar: `http://${host}:8013/`, voice_live: `http://${host}:8015/`, n8n: `http://${host}:5678/`, whisper: `http://${host}:8000/`, workspace: `http://${host}:8001/?workspace=1`, comfy: `http://${host}:8188/` };
-      document.querySelectorAll("[data-nav]").forEach((link) => { const key = link.dataset.nav; if (urls[key]) link.href = urls[key]; });
-      const active = document.body.dataset.page;
-      document.querySelectorAll(`[data-nav="${active}"]`).forEach((link) => { link.dataset.current = "1"; });
+      const nav = document.querySelector(".site-nav");
+      const links = [
+        {id: "hub", label: "Hub"},
+        {id: "vibe", label: "Zen Vibe"},
+        {id: "voice", label: "Voice Pro"},
+        {id: "voice_live", label: "Voice Live"},
+        {id: "avatar", label: "Avatar Live"},
+        {id: "gallery", label: "Gallery"},
+        {id: "system", label: "System"},
+        {id: "docs", label: "Docs"},
+        {id: "vision", label: "Vision"},
+        {id: "video", label: "Video Lab"},
+        {id: "coder", label: "Coder"},
+        {id: "prompt", label: "Prompt Expert"},
+        {id: "auto", label: "Automator"}
+      ];
+      nav.innerHTML = links.map(l => `<a data-nav="${l.id}" href="${urls[l.id]}" ${l.target ? `target="${l.target}"` : ''}>${l.label}</a>`).join('');
+      document.querySelectorAll(`[data-nav="vibe"]`).forEach((link) => { link.dataset.current = "1"; });
     })();
   </script>
   <main class="shell">
     <header>
       <section class="panel hero">
-        <div class="eyebrow">Zen Audio</div>
-        <h1>Music Generation.</h1>
-        <p>Erzeuge Musik aus Text-Prompts mit Meta's MusicGen. Lokal auf deiner GPU, sicher verwaltet durch die GPU-Queue.</p>
+        <div class="eyebrow">Zen Vibe (F5-TTS)</div>
+        <h1>Long-Form Zero-Shot Voice Cloning.</h1>
+        <p>10 Sekunden Audio-Referenz genügen. Ideal für extrem lange Texte (Podcasts, Audiobücher) ohne Halluzinationen oder Qualitätseinbußen.</p>
       </section>
+      <aside class="panel side">
+        <label>Engine</label>
+        <div class="badge" style="width:100%; text-align:center; display:block;">F5-TTS Diffusion</div>
+      </aside>
     </header>
     <section class="grid">
+      <div class="card controls">
+        <label>Referenz-Audio hochladen (.wav)<input type="file" id="speakerUpload" accept=".wav"></label>
+        <label>Transkript der Referenz (wichtig für Perfektion)<input type="text" id="refTextInput" placeholder="Was genau wird in dem 10s-Clip gesprochen?"></label>
+        <label>Geklonte Stimme (Verfügbar)<select id="speakerSelect"></select></label>
+      </div>
       <div class="card">
-        <label>Musik Prompt<textarea id="promptInput" rows="4">Cyberpunk synthwave track with heavy bass and melodic neon lead, fast tempo.</textarea></label>
-        <label>Dauer (Sekunden) <span id="durValue">10</span><input type="range" id="duration" min="5" max="30" step="1" value="10"></label>
+        <label>Zu generierender Text<textarea id="promptInput" rows="10" placeholder="Füge hier deinen extrem langen Text, Podcast-Skript oder Buchkapitel ein..."></textarea></label>
         <div class="actions">
-          <button class="primary" id="genBtn">Musik erzeugen</button>
+          <button class="primary" id="genBtn">Audio generieren</button>
         </div>
         <div class="status" id="statusLine">Bereit.</div>
       </div>
       
-      <div class="card controls">
+      <div class="card controls" style="grid-column: 1 / -1;">
         <label>Ergebnis</label>
         <div class="result" id="resultBox">
             <audio id="audioPlayer" controls class="hidden"></audio>
@@ -164,8 +177,9 @@ HTML = r'''<!doctype html>
   <script>
     const elements = {
         promptInput: document.getElementById("promptInput"),
-        duration: document.getElementById("duration"),
-        durValue: document.getElementById("durValue"),
+        refTextInput: document.getElementById("refTextInput"),
+        speakerUpload: document.getElementById("speakerUpload"),
+        speakerSelect: document.getElementById("speakerSelect"),
         genBtn: document.getElementById("genBtn"),
         statusLine: document.getElementById("statusLine"),
         audioPlayer: document.getElementById("audioPlayer"),
@@ -174,14 +188,35 @@ HTML = r'''<!doctype html>
         downloadLink: document.getElementById("downloadLink")
     };
 
-    elements.duration.oninput = () => { elements.durValue.textContent = elements.duration.value; };
+    async function api(path, options = {}) { const response = await fetch(path, options); const data = await response.json(); if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`); return data; }
+    
+    async function loadData() {
+        const speakers = await api('/api/speakers');
+        elements.speakerSelect.innerHTML = speakers.speakers.map(s => `<option value="${s}">${s}</option>`).join('');
+    }
+
+    elements.speakerUpload.onchange = async () => {
+        if (!elements.speakerUpload.files.length) return;
+        const file = elements.speakerUpload.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+        elements.statusLine.textContent = 'Lade Referenz hoch...';
+        try {
+            await api('/api/speakers/upload', { method: 'POST', body: formData });
+            await loadData();
+            elements.statusLine.textContent = 'Referenz hochgeladen.';
+        } catch (e) { elements.statusLine.textContent = `Upload-Fehler: ${e.message}`; }
+    };
 
     elements.genBtn.onclick = async () => {
         const prompt = elements.promptInput.value.trim();
-        const duration = parseInt(elements.duration.value);
+        const speaker = elements.speakerSelect.value;
+        const refText = elements.refTextInput.value.trim();
+        
+        if (!prompt || !speaker) return;
         
         elements.genBtn.disabled = true;
-        elements.statusLine.textContent = 'Warte auf GPU Orchestrator...';
+        elements.statusLine.textContent = 'Warte auf GPU Orchestrator... (Kann bei großen Modellen 20s laden)';
         elements.timeBadge.classList.add('hidden');
         
         const startTime = Date.now();
@@ -189,7 +224,7 @@ HTML = r'''<!doctype html>
             const res = await fetch('/api/generate', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ prompt, duration })
+                body: JSON.stringify({ text: prompt, speaker: speaker, ref_text: refText })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail);
@@ -210,6 +245,8 @@ HTML = r'''<!doctype html>
             elements.genBtn.disabled = false;
         }
     };
+
+    loadData();
   </script>
 </body>
 </html>'''
@@ -218,11 +255,24 @@ HTML = r'''<!doctype html>
 def index() -> str:
     return HTML
 
+@app.get('/api/speakers')
+def list_speakers() -> dict[str, Any]:
+    return {'speakers': [s.name for s in sorted(SPEAKER_DIR.glob('*.wav'))]}
+
+@app.post('/api/speakers/upload')
+async def upload_speaker(file: UploadFile = File(...)):
+    if not file.filename.endswith('.wav'):
+        raise HTTPException(status_code=400, detail="Nur .wav Dateien erlaubt.")
+    path = SPEAKER_DIR / file.filename
+    with open(path, "wb") as buffer:
+        buffer.write(await file.read())
+    return {"status": "ok", "filename": file.filename}
+
 @app.post('/api/generate')
 def generate(payload: dict = Body(...)):
     # External API: forwards to Orchestrator
     try:
-        response = requests.post(ORCHESTRATOR_URL, json=payload, timeout=300)
+        response = requests.post(ORCHESTRATOR_URL, json=payload, timeout=600)
         response.raise_for_status()
         return response.json()
     except Exception as e:
@@ -231,41 +281,54 @@ def generate(payload: dict = Body(...)):
 @app.post('/api/internal/generate')
 def internal_generate(payload: dict = Body(...)):
     # Internal API: Called by Orchestrator
-    prompt = payload.get('prompt', 'Happy music')
-    duration = payload.get('duration', 10)
+    text = payload.get('text', '').strip()
+    speaker = payload.get('speaker', '')
+    ref_text = payload.get('ref_text', '')
     
-    model, processor = get_model()
-    
-    inputs = processor(
-        text=[prompt],
-        padding=True,
-        return_tensors="pt",
-    ).to(model.device)
-    
-    # Approx 50 tokens per second of audio
-    max_tokens = int(duration * 50)
-    
-    with torch.no_grad():
-        audio_values = model.generate(**inputs, max_new_tokens=max_tokens)
-    
-    sampling_rate = model.config.audio_encoder.sampling_rate
-    filename = f"{uuid.uuid4().hex[:8]}.wav"
+    if not text or not speaker:
+        raise HTTPException(status_code=400, detail="Text und Speaker erforderlich")
+        
+    speaker_path = SPEAKER_DIR / speaker
+    if not speaker_path.exists():
+        raise HTTPException(status_code=404, detail="Referenz nicht gefunden")
+        
+    filename = f"vibe_{uuid.uuid4().hex[:8]}.wav"
     output_path = OUTPUT_DIR / filename
     
-    # Save as WAV
-    data = audio_values[0, 0].cpu().numpy()
-    write(str(output_path), sampling_rate, data)
+    # Write temporary file for input text (F5-TTS handles long files better with -f)
+    tmp_txt = VIBE_ROOT / f"tmp_{uuid.uuid4().hex[:8]}.txt"
+    tmp_txt.write_text(text, encoding="utf-8")
     
-    return {"status": "ok", "filename": filename}
+    cmd = [
+        VENV_PYTHON,
+        F5_CLI,
+        "--model", "F5-TTS",
+        "--ref_audio", str(speaker_path),
+        "--ref_text", ref_text,
+        "--gen_file", str(tmp_txt),
+        "--output_dir", str(OUTPUT_DIR),
+        "--output_file", filename
+    ]
+    
+    try:
+        # Run F5-TTS
+        env = os.environ.copy()
+        proc = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=600)
+        
+        if tmp_txt.exists():
+            tmp_txt.unlink()
+            
+        if proc.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"F5-TTS Error: {proc.stderr}")
+            
+        return {"status": "ok", "filename": filename}
+    except subprocess.TimeoutExpired:
+        if tmp_txt.exists(): tmp_txt.unlink()
+        raise HTTPException(status_code=504, detail="Timeout")
 
-@app.post('/api/offload')
+@app.post('/api/internal/offload')
 def offload():
-    global MODEL, PROCESSOR
-    if MODEL is not None:
-        print("Offloading MusicGen from GPU...")
-        MODEL = None
-        PROCESSOR = None
-        torch.cuda.empty_cache()
+    # VRAM is automatically freed since we use subprocess
     return {"status": "ok"}
 
 @app.get('/api/download/{filename}')
@@ -277,5 +340,6 @@ def download_file(filename: str):
 
 if __name__ == "__main__":
     import uvicorn
-    # Important: Run on Port 8011 for internal worker, Port 8010 for UI is handled by Uvicorn in service
-    uvicorn.run(app, host="0.0.0.0", port=8011)
+    # UI on 8016, Worker on 8017 (started separately if needed, but we combine them for simplicity here)
+    port = int(os.environ.get("VIBE_PORT", 8016))
+    uvicorn.run(app, host="0.0.0.0", port=port)
