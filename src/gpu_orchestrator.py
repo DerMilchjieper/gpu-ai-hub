@@ -372,6 +372,22 @@ def forward(job: Job) -> ResponsePayload:
     return ResponsePayload(response.status_code, headers, response.content)
 
 
+def safe_json_dump(b: bytes) -> str:
+    if not b: return ""
+    text = b.decode('utf-8', errors='replace')
+    try:
+        data = json.loads(text)
+        if isinstance(data, dict):
+            if "images" in data and isinstance(data["images"], list):
+                data["images"] = [f"<base64 data hidden, {len(img)} chars>" for img in data["images"] if isinstance(img, str)]
+            if "messages" in data and isinstance(data["messages"], list):
+                for msg in data["messages"]:
+                    if isinstance(msg, dict) and "images" in msg and isinstance(msg["images"], list):
+                        msg["images"] = ["<base64 data hidden>" for _ in msg["images"]]
+        return json.dumps(data, indent=2)
+    except Exception:
+        return text[:2000] + ("..." if len(text) > 2000 else "")
+
 def complete_record(job: Job, status: str) -> dict[str, Any]:
     return {
         "id": job.id,
@@ -379,6 +395,8 @@ def complete_record(job: Job, status: str) -> dict[str, Any]:
         "path": job.path,
         "client_ip": job.client_ip,
         "payload": job.payload_summary,
+        "req_detail": safe_json_dump(job.body),
+        "res_detail": safe_json_dump(job.response.body) if job.response else "",
         "status": status,
         "created_at": job.created_at,
         "started_at": job.started_at,
@@ -633,7 +651,32 @@ DASHBOARD_HTML = r"""<!doctype html>
     <table><thead><tr><th>Zeit</th><th>Status</th><th>IP</th><th>Service</th><th>Pfad</th><th>Details</th><th>Warten</th><th>Laufzeit</th><th>Fehler</th></tr></thead><tbody id="jobs"></tbody></table>
   </section>
 </main>
+
+<dialog id="jobModal" style="background: var(--panel-strong); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius); max-width: 800px; width: 90%; max-height: 80vh; box-shadow: var(--shadow);">
+  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 10px;">
+    <h3 style="margin:0;" id="modalTitle">Job Details</h3>
+    <button onclick="document.getElementById('jobModal').close()" style="background:transparent; border:1px solid var(--line); color:var(--text); padding:4px 12px; border-radius:4px; cursor:pointer;">Schließen</button>
+  </div>
+  <div style="overflow-y: auto; max-height: calc(80vh - 80px); padding-right: 10px;">
+    <h4 style="color:var(--brand); margin-top:0;">Request</h4>
+    <pre id="modalReq" style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; font-size:12px; border: 1px solid var(--line);"></pre>
+    <h4 style="color:var(--brand);">Response</h4>
+    <pre id="modalRes" style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; font-size:12px; border: 1px solid var(--line);"></pre>
+  </div>
+</dialog>
+
 <script>
+  let currentJobsData = {};
+  
+  window.showDetails = function(id) {
+    const j = currentJobsData[id];
+    if(!j) return;
+    document.getElementById('modalTitle').textContent = `Job: ${j.service} (${j.id.split('-')[0]})`;
+    document.getElementById('modalReq').textContent = j.req_detail || 'Keine Daten';
+    document.getElementById('modalRes').textContent = j.res_detail || 'Keine Daten';
+    document.getElementById('jobModal').showModal();
+  };
+
   const fmt = new Intl.NumberFormat('de-DE');
   function formatTime(ts) {
     if (!ts) return '-';
@@ -693,13 +736,20 @@ DASHBOARD_HTML = r"""<!doctype html>
     
     const cur = data.current_job;
     const comps = data.completed_recent || [];
+    
+    currentJobsData = {};
+    if (cur) currentJobsData[cur.id] = cur;
+    comps.forEach(j => currentJobsData[j.id] = j);
+    
+    const detailLink = (j) => `<a href="#" onclick="showDetails('${j.id}'); return false;" style="color:var(--brand); text-decoration:none;">${j.payload ? `<small>${j.payload}</small>` : '<small>[Details ansehen]</small>'}</a>`;
+
     let jobsHtml = '';
     if (cur) {
-      jobsHtml += row([formatTime(cur.created_at), `<span class="warn">laufend</span>`, cur.client_ip || '?', cur.service, cur.path, `<small>${cur.payload || ''}</small>`, `${cur.wait_sec}s`, '-', '-']);
+      jobsHtml += row([formatTime(cur.created_at), `<span class="warn">laufend</span>`, cur.client_ip || '?', cur.service, cur.path, detailLink(cur), `${cur.wait_sec}s`, '-', '-']);
     }
     comps.forEach((j) => {
       const cls = j.status === 'error' ? 'bad' : 'ok';
-      jobsHtml += row([formatTime(j.created_at), `<span class="${cls}">${j.status}</span>`, j.client_ip || '?', j.service, j.path, `<small>${j.payload || ''}</small>`, `${j.wait_sec}s`, `${j.run_sec}s`, j.error || '']);
+      jobsHtml += row([formatTime(j.created_at), `<span class="${cls}">${j.status}</span>`, j.client_ip || '?', j.service, j.path, detailLink(j), `${j.wait_sec}s`, `${j.run_sec}s`, j.error || '']);
     });
     document.getElementById('jobs').innerHTML = jobsHtml || row(['-','-','-','-','-','-','-','-','-']);
   }
