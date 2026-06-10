@@ -630,7 +630,7 @@ DASHBOARD_HTML = r"""<!doctype html>
 
   <section>
     <h2>Letzte Jobs</h2>
-    <table><thead><tr><th>Status</th><th>Service</th><th>Pfad</th><th>Warten</th><th>Laufzeit</th><th>Fehler</th></tr></thead><tbody id="jobs"></tbody></table>
+    <table><thead><tr><th>Status</th><th>IP</th><th>Service</th><th>Pfad</th><th>Details</th><th>Warten</th><th>Laufzeit</th><th>Fehler</th></tr></thead><tbody id="jobs"></tbody></table>
   </section>
 </main>
 <script>
@@ -685,8 +685,18 @@ DASHBOARD_HTML = r"""<!doctype html>
     document.getElementById('models').innerHTML = modelRows.length ? modelRows.join('') : row(['-', 'Keine Modelle geladen', '-', '']);
 
     document.getElementById('routes').innerHTML = Object.entries(data.targets || {}).map(([name, url]) => row([`<span class="pill">${name}</span>`, `<code>${url}</code>`, `${data.min_free_mib?.[name] || '-'} MiB min. frei`])).join('');
-    const jobs = data.completed_recent || [];
-    document.getElementById('jobs').innerHTML = jobs.length ? jobs.map((job) => row([job.status, job.service, `<code>${job.path}</code>`, `${job.wait_sec ?? '-'}s`, `${job.run_sec ?? '-'}s`, job.error || ''])).join('') : row(['-', '-', 'Noch keine Jobs seit Service-Start', '-', '-', '']);
+    
+    const cur = data.current_job;
+    const comps = data.completed_recent || [];
+    let jobsHtml = '';
+    if (cur) {
+      jobsHtml += row([`<span class="warn">laufend</span>`, cur.client_ip || '?', cur.service, cur.path, `<small>${cur.payload || ''}</small>`, `${cur.wait_sec}s`, '-', '-']);
+    }
+    comps.forEach((j) => {
+      const cls = j.status === 'error' ? 'bad' : 'ok';
+      jobsHtml += row([`<span class="${cls}">${j.status}</span>`, j.client_ip || '?', j.service, j.path, `<small>${j.payload || ''}</small>`, `${j.wait_sec}s`, `${j.run_sec}s`, j.error || '']);
+    });
+    document.getElementById('jobs').innerHTML = jobsHtml || row(['-','-','-','-','-','-','-','-']);
   }
   async function offloadEndpoint(buttonId, endpoint) {
     const button = document.getElementById(buttonId);
