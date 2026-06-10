@@ -630,11 +630,16 @@ DASHBOARD_HTML = r"""<!doctype html>
 
   <section>
     <h2>Letzte Jobs</h2>
-    <table><thead><tr><th>Status</th><th>IP</th><th>Service</th><th>Pfad</th><th>Details</th><th>Warten</th><th>Laufzeit</th><th>Fehler</th></tr></thead><tbody id="jobs"></tbody></table>
+    <table><thead><tr><th>Zeit</th><th>Status</th><th>IP</th><th>Service</th><th>Pfad</th><th>Details</th><th>Warten</th><th>Laufzeit</th><th>Fehler</th></tr></thead><tbody id="jobs"></tbody></table>
   </section>
 </main>
 <script>
   const fmt = new Intl.NumberFormat('de-DE');
+  function formatTime(ts) {
+    if (!ts) return '-';
+    const d = new Date(ts * 1000);
+    return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + '<br><small style="color:var(--muted)">' + d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) + '</small>';
+  }
   const hubLink = document.getElementById('hubLink');
   if (hubLink) hubLink.href = `http://${window.location.hostname || '192.168.2.41'}:8191/`;
   function setText(id, value) { document.getElementById(id).textContent = value; }
@@ -690,13 +695,13 @@ DASHBOARD_HTML = r"""<!doctype html>
     const comps = data.completed_recent || [];
     let jobsHtml = '';
     if (cur) {
-      jobsHtml += row([`<span class="warn">laufend</span>`, cur.client_ip || '?', cur.service, cur.path, `<small>${cur.payload || ''}</small>`, `${cur.wait_sec}s`, '-', '-']);
+      jobsHtml += row([formatTime(cur.created_at), `<span class="warn">laufend</span>`, cur.client_ip || '?', cur.service, cur.path, `<small>${cur.payload || ''}</small>`, `${cur.wait_sec}s`, '-', '-']);
     }
     comps.forEach((j) => {
       const cls = j.status === 'error' ? 'bad' : 'ok';
-      jobsHtml += row([`<span class="${cls}">${j.status}</span>`, j.client_ip || '?', j.service, j.path, `<small>${j.payload || ''}</small>`, `${j.wait_sec}s`, `${j.run_sec}s`, j.error || '']);
+      jobsHtml += row([formatTime(j.created_at), `<span class="${cls}">${j.status}</span>`, j.client_ip || '?', j.service, j.path, `<small>${j.payload || ''}</small>`, `${j.wait_sec}s`, `${j.run_sec}s`, j.error || '']);
     });
-    document.getElementById('jobs').innerHTML = jobsHtml || row(['-','-','-','-','-','-','-','-']);
+    document.getElementById('jobs').innerHTML = jobsHtml || row(['-','-','-','-','-','-','-','-','-']);
   }
   async function offloadEndpoint(buttonId, endpoint) {
     const button = document.getElementById(buttonId);
