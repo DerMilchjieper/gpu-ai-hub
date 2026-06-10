@@ -38,15 +38,13 @@ TARGETS = {
     "whisper": os.getenv("GPU_ORCH_WHISPER", "http://127.0.0.1:8001"),
     "comfy": os.getenv("GPU_ORCH_COMFY", "http://127.0.0.1:8188"),
     "audio": os.getenv("GPU_ORCH_AUDIO", "http://127.0.0.1:8010"), # Internal port for audio worker
-    "vibe": os.getenv("GPU_ORCH_VIBE", "http://127.0.0.1:8017"), # Internal port for vibe worker
 }
 
 MIN_FREE_MIB = {
-    "ollama": int(os.getenv("GPU_ORCH_OLLAMA_MIN_FREE_MIB", "20480")),
+    "ollama": int(os.getenv("GPU_ORCH_OLLAMA_MIN_FREE_MIB", "16384")),
     "whisper": int(os.getenv("GPU_ORCH_WHISPER_MIN_FREE_MIB", "4096")),
     "comfy": int(os.getenv("GPU_ORCH_COMFY_MIN_FREE_MIB", "8192")),
     "audio": int(os.getenv("GPU_ORCH_AUDIO_MIN_FREE_MIB", "6144")),
-    "vibe": int(os.getenv("GPU_ORCH_VIBE_MIN_FREE_MIB", "8192")),
 }
 
 STATE_LOCK = threading.Lock()
@@ -74,6 +72,8 @@ class Job:
     body: bytes
     min_free_mib: int
     timeout_seconds: int
+    client_ip: str = "unknown"
+    payload_summary: str = ""
     done: threading.Event = field(default_factory=threading.Event)
     response: ResponsePayload | None = None
     error: str | None = None
@@ -273,13 +273,6 @@ def offload_audio() -> None:
         pass
 
 
-def offload_vibe() -> None:
-    try:
-        requests.post(TARGETS["vibe"].rstrip("/") + "/api/offload", timeout=20)
-    except Exception:
-        pass
-
-
 def release_other_gpu_users(service: str) -> None:
     if service != "ollama":
         offload_ollama()
@@ -289,8 +282,6 @@ def release_other_gpu_users(service: str) -> None:
         offload_comfy()
     if service != "audio":
         offload_audio()
-    if service != "vibe":
-        offload_vibe()
 
 
 def offload_all() -> None:
@@ -298,7 +289,6 @@ def offload_all() -> None:
     offload_whisper()
     offload_comfy()
     offload_audio()
-    offload_vibe()
 
 
 def offload_after_job(service: str) -> None:
@@ -314,8 +304,6 @@ def offload_after_job(service: str) -> None:
         offload_comfy()
     elif service == "audio":
         offload_audio()
-    elif service == "vibe":
-        offload_vibe()
 
 
 def assert_no_ollama_cpu_offload() -> None:
@@ -353,8 +341,6 @@ def classify(path: str) -> tuple[str | None, str]:
         return "comfy", path.removeprefix("/comfy") or "/"
     if path.startswith("/audio/"):
         return "audio", "/api/internal" + (path.removeprefix("/audio") or "/")
-    if path.startswith("/vibe/"):
-        return "vibe", "/api/internal" + (path.removeprefix("/vibe") or "/")
     return None, path
 
 
@@ -391,6 +377,8 @@ def complete_record(job: Job, status: str) -> dict[str, Any]:
         "id": job.id,
         "service": job.service,
         "path": job.path,
+        "client_ip": job.client_ip,
+        "payload": job.payload_summary,
         "status": status,
         "created_at": job.created_at,
         "started_at": job.started_at,
@@ -848,8 +836,35 @@ class Handler(BaseHTTPRequestHandler):
             return
         length = int(self.headers.get("Content-Length", "0") or "0")
         body = self.rfile.read(length) if length else b""
+        
+        # Extract payload summary
+        payload_summary = ""
+        try:
+            if body and self.headers.get("Content-Type", "").startswith("application/json"):
+                data = json.loads(body)
+                if service == "ollama":
+                    model = data.get("model", "")
+                    prompt = str(data.get("prompt", "") or data.get("messages", ""))[:30]
+                    payload_summary = f"{model} | {prompt}..." if model else "Ollama Request"
+                elif service == "comfy":
+                    payload_summary = "ComfyUI Workflow"
+                elif service == "audio":
+                    prompt = data.get("prompt", "")[:30]
+                    payload_summary = f"Audio: {prompt}..."
+                elif service == "vibe":
+                    speaker = data.get("speaker", "")
+                    payload_summary = f"Vibe: {speaker}"
+                elif service == "whisper":
+                    payload_summary = "Whisper Task"
+        except Exception:
+            pass
+
         timeout = int(self.headers.get("X-GPU-Job-Timeout", DEFAULT_TIMEOUT_SECONDS))
         min_free = int(self.headers.get("X-GPU-Min-Free-MiB", MIN_FREE_MIB[service]))
+        
+        # Determine Client IP (Handle proxied requests if needed)
+        client_ip = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip()
+        
         job = Job(
             id=str(uuid.uuid4()),
             created_at=time.time(),
@@ -861,6 +876,8 @@ class Handler(BaseHTTPRequestHandler):
             body=body,
             min_free_mib=min_free,
             timeout_seconds=timeout,
+            client_ip=client_ip,
+            payload_summary=payload_summary
         )
         WORK_QUEUE.put(job)
         if not job.done.wait(timeout + 5):
