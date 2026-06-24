@@ -10,7 +10,7 @@
 - [x] Add hardware inventory and topology recommendations.
 - [x] Add persistent local and remote-worker Ollama job execution.
 - [x] Build and smoke-test the control-plane image.
-- [ ] Choose and add the project license.
+- [x] Add Apache-2.0 project license and third-party notices.
 - [ ] Test Compose on a clean Linux host with Compose v2.
 - [ ] Test the PowerShell installer on Windows 11 + Docker Desktop.
 - [ ] Test the shell installer on Apple Silicon + Docker Desktop + native Ollama.

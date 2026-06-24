@@ -9,6 +9,7 @@ description="Local-first AI workspace, service discovery, and GPU scheduling con
 readme="README.md"
 requires-python=">=3.11"
 authors=[{name="DerMilchjieper"}]
+license="Apache-2.0"
 keywords=["local-ai","ollama","comfyui","whisper","gpu","self-hosted"]
 classifiers=[
   "Development Status :: 3 - Alpha",

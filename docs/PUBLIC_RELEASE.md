@@ -2,7 +2,7 @@
 
 Before changing repository visibility:
 
-- choose and add an OSI-approved project license;
+- verify the included Apache-2.0 license and copyright owner;
 - enable private vulnerability reporting and Dependabot alerts;
 - protect `main`, require CI, and disable force pushes;
 - add repository topics: local-ai, self-hosted, ollama, comfyui, whisper, gpu;

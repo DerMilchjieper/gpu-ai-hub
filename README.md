@@ -1,6 +1,7 @@
 # GPU AI Hub
 
 [![CI](https://github.com/DerMilchjieper/gpu-ai-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/DerMilchjieper/gpu-ai-hub/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 GPU AI Hub is a local-first AI workspace and accelerator control plane for a
 home network. It combines service discovery, hardware-aware placement,
@@ -127,6 +128,13 @@ docker build -t gpu-ai-hub:dev .
 
 Architecture details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 Public release checklist: [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md).
+
+## License
+
+GPU AI Hub's original code and documentation are licensed under
+[Apache License 2.0](LICENSE). Integrated third-party projects and downloaded
+models remain under their respective licenses; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Project status
 

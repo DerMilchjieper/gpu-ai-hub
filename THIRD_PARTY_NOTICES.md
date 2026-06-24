@@ -2,6 +2,9 @@
 
 GPU AI Hub integrates independent projects under their own licenses:
 
+The Apache-2.0 license in this repository applies only to GPU AI Hub's original
+code and documentation. It does not relicense the projects listed below.
+
 - https://github.com/comfyanonymous/ComfyUI
 - https://github.com/kijai/ComfyUI-KJNodes
 - https://github.com/kijai/ComfyUI-WanVideoWrapper
