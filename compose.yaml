@@ -5,7 +5,6 @@ services:
     restart: unless-stopped
     environment:
       HUB_HOSTNAME: ${HUB_HOSTNAME:-ai-tool-hub.local}
-      HUB_LOCALE: ${HUB_LOCALE:-en}
       HUB_ADMIN_USER: ${HUB_ADMIN_USER:-admin}
       HUB_ADMIN_PASSWORD: ${HUB_ADMIN_PASSWORD:-}
       HUB_DISCOVERY_NETWORKS: ${HUB_DISCOVERY_NETWORKS:-192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,100.64.0.0/10}

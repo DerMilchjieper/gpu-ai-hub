@@ -7,6 +7,6 @@
 ## Validation
 
 - [ ] Tests pass
-- [ ] English and German locales remain in parity
+- [ ] Product-facing text is in English
 - [ ] No secrets, model binaries, generated media, or machine-specific paths
 - [ ] Documentation and third-party notices updated where needed

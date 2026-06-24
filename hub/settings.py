@@ -6,7 +6,6 @@ ROOT = Path(__file__).resolve().parents[1]
 @dataclass(frozen=True)
 class Settings:
     hostname: str = os.getenv("HUB_HOSTNAME","ai-tool-hub.local")
-    locale: str = os.getenv("HUB_LOCALE","en")
     admin_user: str = os.getenv("HUB_ADMIN_USER","admin")
     admin_password: str = os.getenv("HUB_ADMIN_PASSWORD","")
     data_dir: Path = Path(os.getenv("HUB_DATA_DIR",str(ROOT/"data")))
@@ -23,8 +22,5 @@ settings=Settings()
 settings.data_dir.mkdir(parents=True,exist_ok=True)
 def load_json(relative:str):
     return json.loads((ROOT/relative).read_text(encoding="utf-8"))
-def translations(locale:str)->dict[str,str]:
-    safe=locale if locale in {"de","en"} else settings.locale
-    path=ROOT/"locales"/f"{safe}.json"
-    if not path.exists(): path=ROOT/"locales"/"en.json"
-    return json.loads(path.read_text(encoding="utf-8"))
+def translations()->dict[str,str]:
+    return json.loads((ROOT/"locales"/"en.json").read_text(encoding="utf-8"))

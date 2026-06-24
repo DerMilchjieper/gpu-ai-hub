@@ -4,7 +4,7 @@
 
 - [x] Remove workstation IP addresses and absolute home paths from portable code.
 - [x] Add authenticated LAN control plane and CSRF protection.
-- [x] Add English/German locale parity test.
+- [x] Enforce English as the single product language.
 - [x] Add Dockerfile, Compose stack, Caddy gateway, and OS bootstrap scripts.
 - [x] Add private-network discovery limits and explicit service acceptance.
 - [x] Add hardware inventory and topology recommendations.

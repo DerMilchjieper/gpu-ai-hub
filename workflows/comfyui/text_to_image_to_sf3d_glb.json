@@ -874,7 +874,7 @@
   ],
   "groups": [
     {
-      "title": "1 Text zu Bild",
+      "title": "1 Text to image",
       "bounding": [
         0,
         0,
@@ -885,7 +885,7 @@
       "font_size": 24
     },
     {
-      "title": "2 Hintergrund entfernen",
+      "title": "2 Remove background",
       "bounding": [
         1530,
         300,

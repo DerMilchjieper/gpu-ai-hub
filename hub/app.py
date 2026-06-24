@@ -81,10 +81,10 @@ def css():return FileResponse(STATIC/"styles.css",media_type="text/css")
 def health():return {"status":"ok","version":"0.2.0-alpha.1"}
 
 @app.get("/api/bootstrap")
-def bootstrap(request:Request,locale:str="en"):
+def bootstrap(request:Request):
     try:s=current_session(request);user={"username":s["username"],"is_admin":bool(s["is_admin"]),"csrf_token":s["csrf_token"]}
     except HTTPException:user=None
-    return {"hostname":settings.hostname,"locale":locale,"translations":translations(locale),"user":user}
+    return {"hostname":settings.hostname,"locale":"en","translations":translations(),"user":user}
 
 @app.post("/api/auth/login")
 def login(payload:Login,response:Response):

@@ -344,7 +344,7 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "2x Smartphone-Upscale ohne AI-Modell. Input-Video nach ComfyUI input directory kopieren oder in der UI hochladen. Ziel aktuell: 768x1344, H.264 CRF 15."
+        "2x smartphone upscale without an AI model. Copy the input video to the ComfyUI input directory or upload it in the UI. Current target: 768x1344, H.264 CRF 15."
       ]
     }
   ],
@@ -376,7 +376,7 @@
   ],
   "groups": [
     {
-      "title": "1 Video laden",
+      "title": "1 Load video",
       "bounding": [
         0,
         0,
@@ -387,7 +387,7 @@
       "font_size": 24
     },
     {
-      "title": "2 2x Hochskalieren",
+      "title": "2 Upscale 2x",
       "bounding": [
         440,
         0,
@@ -398,7 +398,7 @@
       "font_size": 24
     },
     {
-      "title": "3 MP4 speichern",
+      "title": "3 Save MP4",
       "bounding": [
         850,
         0,

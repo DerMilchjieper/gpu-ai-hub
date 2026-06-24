@@ -5,7 +5,7 @@ Status: public alpha foundation.
 ## Product boundary
 
 GPU AI Hub is a local-first control plane for AI tools. The web hub, service
-registry, localization, health checks, and setup workflow are portable. Model
+registry, English message catalog, health checks, and setup workflow are portable. Model
 runtimes remain replaceable providers because GPU support differs between
 Linux, Windows/WSL2, and macOS.
 
@@ -19,7 +19,7 @@ default.
 
 ## Deployment layers
 
-1. **Control plane**: localized hub UI, service registry, health aggregation,
+1. **Control plane**: English-language hub UI, service registry, health aggregation,
    recommended model catalog, and setup status.
 2. **Portable tools**: chat/coder/vision clients, document RAG, n8n, and other
    services that can run in containers on all supported platforms.
@@ -33,7 +33,7 @@ default.
   installation profile.
 - `config/models.json`: small/recommended/large model profiles and pull
   commands.
-- `locales/*.json`: all user-facing control-plane strings.
+- `locales/en.json`: all user-facing control-plane strings.
 - `.env`: host-specific endpoints and optional overrides; never committed with
   secrets.
 

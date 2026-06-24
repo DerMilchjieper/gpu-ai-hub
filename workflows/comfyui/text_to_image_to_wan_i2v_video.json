@@ -2255,7 +2255,7 @@
   ],
   "groups": [
     {
-      "title": "1 Text zu Startbild (FLUX)",
+      "title": "1 Text to initial image (FLUX)",
       "bounding": [
         0,
         0,
@@ -2266,7 +2266,7 @@
       "font_size": 24
     },
     {
-      "title": "2 Startbild vorbereiten",
+      "title": "2 Prepare initial image",
       "bounding": [
         1560,
         320,
@@ -2288,7 +2288,7 @@
       "font_size": 24
     },
     {
-      "title": "4 MP4 speichern",
+      "title": "4 Save MP4",
       "bounding": [
         4200,
         0,
