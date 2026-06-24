@@ -2,3 +2,16 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+.venv/
+*.egg-info/
+data/
+.pytest_cache/
+*.bak
+*.safetensors
+*.ckpt
+*.gguf
+*.pth
+*.pt
+models/
+outputs/
+uploads/

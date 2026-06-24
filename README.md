@@ -1,90 +1,142 @@
 # GPU AI Hub
 
-Local GPU-first orchestration for Ollama, Whisper and ComfyUI on a single NVIDIA GPU workstation.
+[![CI](https://github.com/DerMilchjieper/gpu-ai-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/DerMilchjieper/gpu-ai-hub/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-The project provides:
+GPU AI Hub is a local-first AI workspace and accelerator control plane for a
+home network. It combines service discovery, hardware-aware placement,
+authenticated workspace tools, and a persistent job queue behind one browser
+entrypoint.
 
-- a FIFO HTTP gateway for GPU AI jobs
-- live per-tool VRAM and loaded-model visibility for Ollama, Whisper and ComfyUI
-- hard GPU-only policy for queued requests
-- active VRAM release between Ollama, Whisper and ComfyUI
-- a browser landing page for GPU queue status, manual offload, Ollama tests, Whisper and ComfyUI workflow links
-- a user-level systemd service template
+> **Status: public alpha.** The full installer includes profiles for Ollama,
+> SearXNG, n8n, ComfyUI with curated workflows, and a faster-whisper API.
+> Large model files remain explicit downloads because their licenses and
+> hardware requirements differ.
 
-## Ports
+## Implemented alpha features
 
-Default local layout:
-
-| Service | Direct Port | Queued Route |
-| --- | ---: | --- |
-| GPU Orchestrator | `11435` | `http://HOST:11435/status` dashboard, `http://HOST:11435/api/status` JSON |
-| Ollama | `11434` | `http://HOST:11435/api/generate` and `/api/chat` |
-| Whisper | `8001` | `http://HOST:11435/whisper/api/...` |
-| ComfyUI | `8188` | `http://HOST:11435/comfy/...` for HTTP API clients |
-| Landing Page | `8191` | static browser hub |
-
-ComfyUI's browser UI still opens direct port `8188` because it uses WebSockets. API clients that submit ComfyUI prompts should use the orchestrator route where possible.
-
-## GPU-only policy
-
-The orchestrator queues POST requests and checks free VRAM with `nvidia-smi` before forwarding. It also releases unrelated GPU users before a job starts:
-
-- non-Ollama jobs stop loaded Ollama models
-- non-Whisper jobs call Whisper `/api/deactivate`
-- non-Comfy jobs call ComfyUI `/free`
-
-For Ollama, strict mode checks `ollama ps` after requests and rejects results if a model is not reported as `100% GPU`. Auto-offload is enabled by default and unloads the service model after each queued job. The dashboard exposes `Alles entladen` backed by `POST /api/offload`, plus service-specific buttons for `POST /api/offload/ollama`, `POST /api/offload/whisper`, and `POST /api/offload/comfy`. ComfyUI itself only exposes global model unload through `/free`; single-checkpoint unload requires a ComfyUI extension.
-
-Whisper should be configured with CPU fallback disabled. In the companion local setup this means `WHISPER_CPU_FALLBACK=0`.
+- authenticated English-language LAN web workspace
+- chat through Ollama and side-by-side model comparison
+- SearXNG-backed research
+- notes, tasks, and calendar events
+- service registry and opt-in private-/24 network discovery
+- NVIDIA, AMD ROCm, and Apple Silicon hardware probes
+- topology recommendations for single, homogeneous, and mixed accelerators
+- persistent SQLite jobs with leases and scheduling-mode metadata
+- Ollama job execution and remote worker heartbeats
+- model profiles with explicit pull commands
+- Docker control plane plus Linux/macOS and Windows bootstrap scripts
+- seven curated ComfyUI image, video, upscale, and 3D workflows
+- required ComfyUI custom nodes in the creative container image
+- faster-whisper transcription API with CPU and NVIDIA modes
+- Caddy gateway on port 80
 
 ## Install
 
-```bash
-./install-user-service.sh
-systemctl --user status gpu-orchestrator.service --no-pager
-curl http://127.0.0.1:11435/api/status
-```
-
-## Environment
-
-Important settings in `systemd/gpu-orchestrator.service`:
-
-- `GPU_ORCH_PORT=11435`
-- `GPU_ORCH_GPU_INDEX=0`
-- `GPU_ORCH_STRICT_OLLAMA_GPU=1`
-- `GPU_ORCH_AUTO_OFFLOAD=1`
-- `GPU_ORCH_AUTO_OFFLOAD_DELAY_SECONDS=0`
-- `GPU_ORCH_OLLAMA_MIN_FREE_MIB=2048`
-- `GPU_ORCH_WHISPER_MIN_FREE_MIB=2500`
-- `GPU_ORCH_COMFY_MIN_FREE_MIB=8192`
-
-## Example Ollama request through the queue
+### Linux and macOS
 
 ```bash
-curl -s -X POST http://127.0.0.1:11435/api/generate \
-  -H 'Content-Type: application/json' \
-  -d '{"model":"qwen3:8b","prompt":"Say GPU_OK","stream":false}'
+git clone https://github.com/DerMilchjieper/gpu-ai-hub.git
+cd gpu-ai-hub
+./scripts/install.sh
 ```
 
-## Notes
+### Windows
 
-This is intentionally local-first infrastructure. It does not manage cloud GPUs and it does not attempt CPU fallback.
+Install Docker Desktop, clone the repository, then run:
 
+```powershell
+.\scripts\install.ps1
+```
 
-## Zen Voice / lokale TTS
+The preferred LAN URL is:
 
-Der Hub enthaelt eine lokale Piper-TTS-Weboberflaeche auf Port `8002`. Sie nutzt `/home/wizzard/ai/tts/bin/piper` und die lokalen Stimmen unter `/home/wizzard/ai/tts/voices`, erzeugt WAV-Dateien in `/home/wizzard/ai/tts/outputs` und sendet keine Sprachdaten an Cloud-Dienste.
+```text
+http://ai-tool-hub.local/
+```
 
-Start als User-Service:
+The installer also prints an IP-based fallback. The generated initial admin
+password is available through `docker compose logs hub`.
+
+### Models
 
 ```bash
-systemctl --user enable --now tts-portal.service
+./scripts/pull-models.sh minimal
+./scripts/pull-models.sh recommended
+./scripts/pull-models.sh large
 ```
 
-API-Beispiel:
+Model downloads are deliberately separate because hardware, disk space, and
+licenses differ.
+
+The full installer asks once before enabling the creative, speech, research,
+and automation profiles. NVIDIA hosts use the GPU Compose overlay. Apple
+Silicon installs ComfyUI natively so Metal remains available. Provider ports
+bind to loopback by default and are exposed to a trusted LAN only after an
+explicit installer confirmation.
+
+## Discovery and workers
+
+Network scanning is never automatic. An admin chooses a private IPv4 network no
+larger than `/24`. Detected Ollama, ComfyUI, Whisper, n8n, LM Studio, and
+OpenAI-compatible endpoints must be accepted before registration.
+
+A remote machine can report its hardware to the control plane:
 
 ```bash
-curl -X POST http://127.0.0.1:8002/api/synthesize \
-  -H 'Content-Type: application/json' \
-  -d '{"text":"Hallo aus Piper.","voice":"de_DE-thorsten-medium"}'
+HUB_CONTROL_URL=http://ai-tool-hub.local \
+HUB_WORKER_TOKEN=<shared-pairing-token> \
+python -m hub.worker
 ```
+
+Workers report capabilities, claim worker-targeted Ollama jobs with expiring
+leases, execute them locally, and return bounded result summaries. Gang
+scheduling and provider lifecycle control remain later scheduler slices.
+
+## Scheduling policy
+
+- one accelerator: serialized queue
+- mixed accelerators: independent workers, largest models on the largest device
+- similar accelerators: one provider instance per device for throughput
+- pooling: only when the engine explicitly supports tensor/pipeline parallelism
+- Apple Silicon: one Metal worker governed by unified-memory pressure
+- cross-host: distribute jobs; never represent networked memory as shared VRAM
+
+Accepted scheduling modes are `auto`, `sequential`, `parallel`,
+`broadcast`, `pipeline`, and `gang`. The alpha executor currently runs
+`ollama.generate`; remote Ollama execution is functional; other provider-specific executors are
+added independently.
+
+## Security
+
+LAN mode requires authentication. Session cookies are HttpOnly/SameSite,
+mutations require a CSRF token, discovery is restricted to configured private
+networks, and the status API omits complete job payloads.
+
+Do not expose the raw app or provider ports directly to the public internet.
+Shell, filesystem, email-send, and MCP mutation capabilities are not enabled in
+this alpha.
+
+## Development
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -e '.[dev]'
+.venv/bin/pytest -q
+docker build -t gpu-ai-hub:dev .
+```
+
+Architecture details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Public release checklist: [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md).
+
+## License
+
+GPU AI Hub's original code and documentation are licensed under
+[Apache License 2.0](LICENSE). Integrated third-party projects and downloaded
+models remain under their respective licenses; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Project status
+
+This repository contains only the portable implementation. Workstation-specific
+legacy portals and systemd units are intentionally excluded.
