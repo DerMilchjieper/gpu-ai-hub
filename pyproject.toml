@@ -6,7 +6,16 @@ build-backend="setuptools.build_meta"
 name="gpu-ai-hub"
 version="0.2.0a1"
 description="Local-first AI workspace, service discovery, and GPU scheduling control plane"
+readme="README.md"
 requires-python=">=3.11"
+authors=[{name="DerMilchjieper"}]
+keywords=["local-ai","ollama","comfyui","whisper","gpu","self-hosted"]
+classifiers=[
+  "Development Status :: 3 - Alpha",
+  "Environment :: Web Environment",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
 dependencies=["fastapi>=0.115,<1","httpx>=0.27,<1","python-multipart>=0.0.9,<1","uvicorn[standard]>=0.30,<1","zeroconf>=0.136,<1"]
 
 [project.optional-dependencies]

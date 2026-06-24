@@ -38,6 +38,13 @@ case "${extras:-Y}" in
      if [ "$GPU" = apple ]; then "$ROOT/scripts/install-comfyui-native.sh"
      else PROFILE_ARGS="$PROFILE_ARGS --profile creative"; fi ;;
 esac
+printf "Expose ComfyUI and Whisper directly to your trusted LAN? [y/N] "
+read lan_expose || true
+case "${lan_expose:-N}" in
+  y|Y)
+    sed -i.bak 's/^COMFYUI_BIND=.*/COMFYUI_BIND=0.0.0.0/;s/^WHISPER_BIND=.*/WHISPER_BIND=0.0.0.0/' .env
+    ;;
+esac
 docker compose $COMPOSE_FILES $PROFILE_ARGS up -d --build
 echo "GPU AI Hub started."
 echo "Preferred URL: http://ai-tool-hub.local/"

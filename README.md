@@ -1,5 +1,7 @@
 # GPU AI Hub
 
+[![CI](https://github.com/DerMilchjieper/gpu-ai-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/DerMilchjieper/gpu-ai-hub/actions/workflows/ci.yml)
+
 GPU AI Hub is a local-first AI workspace and accelerator control plane for a
 home network. It combines service discovery, hardware-aware placement,
 authenticated workspace tools, and a persistent job queue behind one browser
@@ -68,9 +70,9 @@ licenses differ.
 
 The full installer asks once before enabling the creative, speech, research,
 and automation profiles. NVIDIA hosts use the GPU Compose overlay. Apple
-Silicon installs ComfyUI natively so Metal remains available. ComfyUI is
-reachable on LAN port 8188 and Whisper on port 8001; keep the hub on a trusted
-network or restrict the bind addresses in .env.
+Silicon installs ComfyUI natively so Metal remains available. Provider ports
+bind to loopback by default and are exposed to a trusted LAN only after an
+explicit installer confirmation.
 
 ## Discovery and workers
 
@@ -124,9 +126,9 @@ docker build -t gpu-ai-hub:dev .
 ```
 
 Architecture details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Public release checklist: [docs/PUBLIC_RELEASE.md](docs/PUBLIC_RELEASE.md).
 
-## Legacy portals
+## Project status
 
-The original workstation-specific portals and systemd units remain under
-`src/`, `landing-page/`, and `systemd/`. They are preserved for migration,
-but they are not part of the portable Compose control plane yet.
+This repository contains only the portable implementation. Workstation-specific
+legacy portals and systemd units are intentionally excluded.

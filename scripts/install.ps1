@@ -23,6 +23,10 @@ if (Get-Command ollama -ErrorAction SilentlyContinue) {
 }
 $Extras = Read-Host "Install full tool pack: ComfyUI workflows, Whisper, SearXNG and n8n? [Y/n]"
 if ($Extras -notmatch "^[nN]$") { $Profiles += @("--profile","research","--profile","automation","--profile","creative","--profile","speech") }
+$LanExpose = Read-Host "Expose ComfyUI and Whisper directly to your trusted LAN? [y/N]"
+if ($LanExpose -match "^[yY]$") {
+  (Get-Content ".env") -replace "^COMFYUI_BIND=.*", "COMFYUI_BIND=0.0.0.0" -replace "^WHISPER_BIND=.*", "WHISPER_BIND=0.0.0.0" | Set-Content ".env"
+}
 & docker compose @ComposeFiles @Profiles up -d --build
 Write-Host "Preferred URL: http://ai-tool-hub.local/"
 Write-Host "LAN fallback: http://$Ip/"
