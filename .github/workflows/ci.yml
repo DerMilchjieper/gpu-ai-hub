@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: {node-version: "22"}
       - run: python -m venv .venv
-      - run: .venv/bin/pip install -r requirements.lock
+      - run: .venv/bin/pip install -e '.[dev]'
       - run: .venv/bin/pytest -q
       - run: node --check hub/static/app.js
       - run: bash -n scripts/*.sh
