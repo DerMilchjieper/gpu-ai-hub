@@ -14,8 +14,9 @@
 - [ ] Test Compose on a clean Linux host with Compose v2.
 - [ ] Test the PowerShell installer on Windows 11 + Docker Desktop.
 - [ ] Test the shell installer on Apple Silicon + Docker Desktop + native Ollama.
-- [ ] Pin and verify optional provider images before enabling automatic
-      ComfyUI/Whisper/audio/video installation.
+- [x] Add reproducible ComfyUI and Whisper provider builds with curated workflows.
+- [ ] Pin every ComfyUI custom-node repository to an audited commit.
+- [ ] Verify all large/gated model download instructions and licenses.
 - [ ] Add HTTPS/private-access guidance for untrusted LANs.
 
 ## Release boundary

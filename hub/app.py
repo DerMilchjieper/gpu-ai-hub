@@ -52,8 +52,10 @@ async def lifespan(app:FastAPI):
     generated=initialize()
     if generated: print(f"GPU AI Hub initial admin: {settings.admin_user} / {generated}",flush=True)
     with connect() as conn:
-        if not conn.execute("SELECT 1 FROM services WHERE kind='ollama' LIMIT 1").fetchone():
-            conn.execute("INSERT INTO services(name,kind,base_url,created_at) VALUES(?,?,?,?)",("Default Ollama","ollama",settings.ollama_base_url,time.time()))
+        defaults=(("Default Ollama","ollama",settings.ollama_base_url),("Bundled ComfyUI","comfyui",settings.comfyui_base_url),("Bundled Whisper","whisper",settings.whisper_base_url),("Bundled n8n","n8n",settings.n8n_base_url))
+        for name,kind,url in defaults:
+            if url and not conn.execute("SELECT 1 FROM services WHERE kind=? AND base_url=? LIMIT 1",(kind,url)).fetchone():
+                conn.execute("INSERT INTO services(name,kind,base_url,created_at) VALUES(?,?,?,?)",(name,kind,url,time.time()))
     await scheduler.start()
     mdns_handle=mdns.register(settings.mdns_address,settings.hostname)
     yield
@@ -107,6 +109,13 @@ def dashboard(_=Depends(current_session)):
 def get_hardware(_=Depends(current_session)):return hardware.inventory()
 @app.get("/api/models")
 def models(_=Depends(current_session)):return load_json("config/models.json")
+@app.get("/api/workflows")
+def workflows(_=Depends(current_session)):return load_json("config/comfyui.json")
+@app.get("/workflows/{filename}")
+def workflow_file(filename:str,_=Depends(current_session)):
+    allowed={x["file"] for x in load_json("config/comfyui.json")["workflows"]}
+    if filename not in allowed:raise HTTPException(404,"Workflow not found.")
+    return FileResponse(ROOT/"workflows"/"comfyui"/filename,media_type="application/json",filename=filename)
 @app.get("/api/services")
 def services(_=Depends(current_session)):return rows("SELECT * FROM services ORDER BY kind,name")
 @app.post("/api/services")

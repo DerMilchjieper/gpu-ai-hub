@@ -5,6 +5,7 @@
   "nav.chat": "Chat",
   "nav.compare": "Vergleichen",
   "nav.research": "Recherche",
+  "nav.creative": "Bild & Video",
   "nav.notes": "Notizen & Aufgaben",
   "nav.calendar": "Kalender",
   "nav.services": "Dienste",
@@ -42,5 +43,8 @@
   "dashboard.topology": "Topologie",
   "service.name": "Name",
   "service.kind": "Diensttyp",
-  "service.url": "Dienst-URL"
+  "service.url": "Dienst-URL",
+  "creative.open": "ComfyUI öffnen",
+  "creative.download": "Workflow herunterladen",
+  "creative.models": "Workflows sind enthalten. Große Modelldateien werden nach Zustimmung zur jeweiligen Lizenz separat geladen."
 }

@@ -9,8 +9,11 @@ services:
       HUB_ADMIN_USER: ${HUB_ADMIN_USER:-admin}
       HUB_ADMIN_PASSWORD: ${HUB_ADMIN_PASSWORD:-}
       HUB_DISCOVERY_NETWORKS: ${HUB_DISCOVERY_NETWORKS:-192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,100.64.0.0/10}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      SEARXNG_BASE_URL: ${SEARXNG_BASE_URL:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      SEARXNG_BASE_URL: ${SEARXNG_BASE_URL:-http://searxng:8080}
+      COMFYUI_BASE_URL: ${COMFYUI_BASE_URL:-http://comfyui:8188}
+      WHISPER_BASE_URL: ${WHISPER_BASE_URL:-http://whisper:8001}
+      N8N_BASE_URL: ${N8N_BASE_URL:-http://n8n:5678}
       HUB_SESSION_TTL_HOURS: ${HUB_SESSION_TTL_HOURS:-24}
       HUB_DATA_DIR: /data
       HUB_MDNS_ADDRESS: ${HUB_MDNS_ADDRESS:-}
@@ -29,6 +32,27 @@ services:
     restart: unless-stopped
     volumes: ["ollama-data:/root/.ollama"]
     ports: ["127.0.0.1:11434:11434"]
+  comfyui:
+    build:
+      context: .
+      dockerfile: docker/comfyui/Dockerfile
+    profiles: ["creative"]
+    restart: unless-stopped
+    volumes:
+      - "comfyui-models:/opt/ComfyUI/models"
+      - "comfyui-output:/opt/ComfyUI/output"
+    ports: ["${COMFYUI_BIND:-127.0.0.1}:8188:8188"]
+  whisper:
+    build:
+      context: docker/whisper
+    profiles: ["speech"]
+    restart: unless-stopped
+    environment:
+      WHISPER_MODEL: ${WHISPER_MODEL:-small}
+      WHISPER_DEVICE: ${WHISPER_DEVICE:-cpu}
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
+    volumes: ["whisper-cache:/root/.cache/huggingface"]
+    ports: ["${WHISPER_BIND:-127.0.0.1}:8001:8001"]
   searxng:
     image: ${SEARXNG_IMAGE:-searxng/searxng:latest}
     profiles: ["research"]
@@ -43,3 +67,6 @@ services:
 volumes:
   ollama-data:
   n8n-data:
+  comfyui-models:
+  comfyui-output:
+  whisper-cache:

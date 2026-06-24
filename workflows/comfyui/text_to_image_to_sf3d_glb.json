@@ -1,0 +1,922 @@
+{
+  "id": "text-to-image-to-sf3d-glb",
+  "revision": 0,
+  "last_node_id": 14,
+  "last_link_id": 17,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CheckpointLoaderSimple",
+      "pos": [
+        20,
+        310
+      ],
+      "size": [
+        315,
+        130
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "ckpt_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "ckpt_name"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "slot_index": 0,
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "slot_index": 1,
+          "links": [
+            2,
+            3
+          ]
+        },
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "slot_index": 2,
+          "links": [
+            7
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CheckpointLoaderSimple",
+        "cnr_id": "comfy-core"
+      },
+      "widgets_values": [
+        "FLUX/flux1-dev-fp8.safetensors"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CLIPTextEncode",
+      "pos": [
+        380,
+        20
+      ],
+      "size": [
+        500,
+        260
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 2
+        },
+        {
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode",
+        "cnr_id": "comfy-core"
+      },
+      "widgets_values": [
+        "isolated single object for 3D reconstruction, product packshot, centered, full object visible, orthographic front view, pure white background, hard clean silhouette, high contrast edges, studio lighting, no shadow, no floor, no environment, no hands, no text"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "CLIPTextEncode",
+      "pos": [
+        380,
+        330
+      ],
+      "size": [
+        500,
+        190
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 3
+        },
+        {
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            5
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode",
+        "cnr_id": "comfy-core"
+      },
+      "widgets_values": [
+        "person, character, hand, body, room, landscape, floor, table, pedestal, multiple objects, cropped object, cut off edges, text, watermark, logo, blur, low contrast, busy background, shadow"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "EmptyLatentImage",
+      "pos": [
+        380,
+        580
+      ],
+      "size": [
+        315,
+        144
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": null
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": null
+        },
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "widget": {
+            "name": "batch_size"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "slot_index": 0,
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyLatentImage",
+        "cnr_id": "comfy-core"
+      },
+      "widgets_values": [
+        1024,
+        1024,
+        1
+      ]
+    },
+    {
+      "id": 5,
+      "type": "KSampler",
+      "pos": [
+        930,
+        190
+      ],
+      "size": [
+        315,
+        318
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 1
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 4
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 5
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 6
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": null
+        },
+        {
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        },
+        {
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "slot_index": 0,
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSampler",
+        "cnr_id": "comfy-core"
+      },
+      "widgets_values": [
+        123456789,
+        "randomize",
+        24,
+        1.0,
+        "euler",
+        "simple",
+        1.0
+      ]
+    },
+    {
+      "id": 6,
+      "type": "VAEDecode",
+      "pos": [
+        1290,
+        230
+      ],
+      "size": [
+        225,
+        72
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 8
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            9,
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode",
+        "cnr_id": "comfy-core"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 7,
+      "type": "SaveImage",
+      "pos": [
+        1560,
+        20
+      ],
+      "size": [
+        260,
+        260
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 9
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "SaveImage",
+        "cnr_id": "comfy-core"
+      },
+      "widgets_values": [
+        "concept_for_sf3d"
+      ]
+    },
+    {
+      "id": 8,
+      "type": "easy imageRemBg",
+      "pos": [
+        1560,
+        340
+      ],
+      "size": [
+        315,
+        220
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 10
+        },
+        {
+          "name": "rem_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "rem_mode"
+          },
+          "link": null
+        },
+        {
+          "name": "image_output",
+          "type": "COMBO",
+          "widget": {
+            "name": "image_output"
+          },
+          "link": null
+        },
+        {
+          "name": "save_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "save_prefix"
+          },
+          "link": null
+        },
+        {
+          "name": "torchscript_jit",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "torchscript_jit"
+          },
+          "link": null
+        },
+        {
+          "name": "add_background",
+          "type": "COMBO",
+          "widget": {
+            "name": "add_background"
+          },
+          "link": null
+        },
+        {
+          "name": "refine_foreground",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "refine_foreground"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            11,
+            14
+          ]
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "slot_index": 1,
+          "links": [
+            12
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "easy imageRemBg"
+      },
+      "widgets_values": [
+        "RMBG-2.0",
+        "Preview",
+        "sf3d_removed_bg",
+        false,
+        "none",
+        true
+      ]
+    },
+    {
+      "id": 9,
+      "type": "StableFast3DLoader",
+      "pos": [
+        1960,
+        260
+      ],
+      "size": [
+        210,
+        26
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "sf3d_model",
+          "type": "SF3D_MODEL",
+          "slot_index": 0,
+          "links": [
+            13
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "StableFast3DLoader"
+      }
+    },
+    {
+      "id": 10,
+      "type": "StableFast3DSampler",
+      "pos": [
+        2220,
+        240
+      ],
+      "size": [
+        315,
+        180
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "SF3D_MODEL",
+          "link": 13
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 11
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 12
+        },
+        {
+          "name": "remesh",
+          "type": "none",
+          "widget": {
+            "name": "remesh"
+          },
+          "link": null
+        },
+        {
+          "name": "vertex_count",
+          "type": "INT",
+          "widget": {
+            "name": "vertex_count"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mesh",
+          "type": "MESH",
+          "slot_index": 0,
+          "links": [
+            15,
+            16,
+            17
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "StableFast3DSampler"
+      },
+      "widgets_values": [
+        0.85,
+        2048,
+        "triangle",
+        12000
+      ]
+    },
+    {
+      "id": 11,
+      "type": "StableFast3DSave",
+      "pos": [
+        2600,
+        160
+      ],
+      "size": [
+        420,
+        260
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mesh",
+          "type": "MESH",
+          "link": 15
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "StableFast3DSave"
+      },
+      "widgets_values": [
+        "SF3D_textured_asset"
+      ]
+    },
+    {
+      "id": 12,
+      "type": "StableFast3DPreview",
+      "pos": [
+        2600,
+        460
+      ],
+      "size": [
+        420,
+        320
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mesh",
+          "type": "MESH",
+          "link": 16
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "StableFast3DPreview"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 13,
+      "type": "PreviewImage",
+      "pos": [
+        1930,
+        500
+      ],
+      "size": [
+        260,
+        240
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 14
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage",
+        "cnr_id": "comfy-core"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 14,
+      "type": "StableFast3DSaveTextures",
+      "pos": [
+        3060,
+        160
+      ],
+      "size": [
+        360,
+        180
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mesh",
+          "type": "MESH",
+          "link": 17
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "StableFast3DSaveTextures"
+      },
+      "widgets_values": [
+        "SF3D_texture_maps"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      5,
+      0,
+      "MODEL"
+    ],
+    [
+      2,
+      1,
+      1,
+      2,
+      0,
+      "CLIP"
+    ],
+    [
+      3,
+      1,
+      1,
+      3,
+      0,
+      "CLIP"
+    ],
+    [
+      4,
+      2,
+      0,
+      5,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      5,
+      3,
+      0,
+      5,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      6,
+      4,
+      0,
+      5,
+      3,
+      "LATENT"
+    ],
+    [
+      7,
+      1,
+      2,
+      6,
+      1,
+      "VAE"
+    ],
+    [
+      8,
+      5,
+      0,
+      6,
+      0,
+      "LATENT"
+    ],
+    [
+      9,
+      6,
+      0,
+      7,
+      0,
+      "IMAGE"
+    ],
+    [
+      10,
+      6,
+      0,
+      8,
+      0,
+      "IMAGE"
+    ],
+    [
+      11,
+      8,
+      0,
+      10,
+      1,
+      "IMAGE"
+    ],
+    [
+      12,
+      8,
+      1,
+      10,
+      2,
+      "MASK"
+    ],
+    [
+      13,
+      9,
+      0,
+      10,
+      0,
+      "SF3D_MODEL"
+    ],
+    [
+      14,
+      8,
+      0,
+      13,
+      0,
+      "IMAGE"
+    ],
+    [
+      15,
+      10,
+      0,
+      11,
+      0,
+      "MESH"
+    ],
+    [
+      16,
+      10,
+      0,
+      12,
+      0,
+      "MESH"
+    ],
+    [
+      17,
+      10,
+      0,
+      14,
+      0,
+      "MESH"
+    ]
+  ],
+  "groups": [
+    {
+      "title": "1 Text zu Bild",
+      "bounding": [
+        0,
+        0,
+        1520,
+        760
+      ],
+      "color": "#3f789e",
+      "font_size": 24
+    },
+    {
+      "title": "2 Hintergrund entfernen",
+      "bounding": [
+        1530,
+        300,
+        360,
+        300
+      ],
+      "color": "#8a6e3a",
+      "font_size": 24
+    },
+    {
+      "title": "3 Stable Fast 3D GLB",
+      "bounding": [
+        1920,
+        120,
+        1120,
+        680
+      ],
+      "color": "#497a4b",
+      "font_size": 24
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.62,
+      "offset": [
+        80,
+        80
+      ]
+    },
+    "workflow_preload_title": "Text to Image to Textured SF3D GLB - FLUX/RMBG2"
+  },
+  "version": 0.4
+}

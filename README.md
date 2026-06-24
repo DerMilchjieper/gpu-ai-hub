@@ -5,10 +5,10 @@ home network. It combines service discovery, hardware-aware placement,
 authenticated workspace tools, and a persistent job queue behind one browser
 entrypoint.
 
-> **Status: public alpha.** The portable control plane is implemented. Ollama,
-> SearXNG, and n8n have Docker profiles. Heavy providers such as ComfyUI,
-> Whisper, audio, and video remain external/native adapters until their
-> cross-platform installers are independently verified.
+> **Status: public alpha.** The full installer includes profiles for Ollama,
+> SearXNG, n8n, ComfyUI with curated workflows, and a faster-whisper API.
+> Large model files remain explicit downloads because their licenses and
+> hardware requirements differ.
 
 ## Implemented alpha features
 
@@ -23,6 +23,9 @@ entrypoint.
 - Ollama job execution and remote worker heartbeats
 - model profiles with explicit pull commands
 - Docker control plane plus Linux/macOS and Windows bootstrap scripts
+- seven curated ComfyUI image, video, upscale, and 3D workflows
+- required ComfyUI custom nodes in the creative container image
+- faster-whisper transcription API with CPU and NVIDIA modes
 - Caddy gateway on port 80
 
 ## Install
@@ -62,6 +65,12 @@ password is available through `docker compose logs hub`.
 
 Model downloads are deliberately separate because hardware, disk space, and
 licenses differ.
+
+The full installer asks once before enabling the creative, speech, research,
+and automation profiles. NVIDIA hosts use the GPU Compose overlay. Apple
+Silicon installs ComfyUI natively so Metal remains available. ComfyUI is
+reachable on LAN port 8188 and Whisper on port 8001; keep the hub on a trusted
+network or restrict the bind addresses in .env.
 
 ## Discovery and workers
 

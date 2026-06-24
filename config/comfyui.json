@@ -1,0 +1,20 @@
+{
+  "workflows": [
+    {"id":"text-to-image-sdxl","file":"text_to_image_sdxl.json","tier":"starter","title":{"en":"SDXL text to image","de":"SDXL Text zu Bild"}},
+    {"id":"stable-fast-3d","file":"stable_fast_3d_image_to_3d.json","tier":"3d","title":{"en":"Stable Fast 3D","de":"Stable Fast 3D"}},
+    {"id":"triposr","file":"triposr_image_to_3d.json","tier":"3d","title":{"en":"TripoSR image to 3D","de":"TripoSR Bild zu 3D"}},
+    {"id":"text-sf3d","file":"text_to_image_to_sf3d_glb.json","tier":"3d","title":{"en":"Text to SF3D GLB","de":"Text zu SF3D GLB"}},
+    {"id":"text-triposr","file":"text_to_image_to_triposr_3d.json","tier":"3d","title":{"en":"Text to TripoSR 3D","de":"Text zu TripoSR 3D"}},
+    {"id":"wan-i2v","file":"text_to_image_to_wan_i2v_video.json","tier":"large","title":{"en":"Text to Wan image-to-video","de":"Text zu Wan Bild-zu-Video"}},
+    {"id":"video-upscale","file":"video_upscale_2x_lanczos.json","tier":"starter","title":{"en":"Video upscale 2x","de":"Video 2x hochskalieren"}}
+  ],
+  "custom_nodes": [
+    "https://github.com/kijai/ComfyUI-KJNodes",
+    "https://github.com/kijai/ComfyUI-WanVideoWrapper",
+    "https://github.com/flowtyone/ComfyUI-Flowty-TripoSR",
+    "https://github.com/yolain/ComfyUI-Easy-Use",
+    "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite",
+    "https://github.com/Stability-AI/stable-fast-3d"
+  ],
+  "model_policy": "Models are downloaded separately after license acceptance; model binaries are never committed."
+}
