@@ -1,0 +1,8 @@
+[
+  {"id":"ollama","kind":"ollama","name_key":"service.ollama","default_port":11434,"health_path":"/api/tags"},
+  {"id":"comfyui","kind":"comfyui","name_key":"service.comfyui","default_port":8188,"health_path":"/system_stats"},
+  {"id":"whisper","kind":"whisper","name_key":"service.whisper","default_port":8001,"health_path":"/api/status"},
+  {"id":"n8n","kind":"n8n","name_key":"service.n8n","default_port":5678,"health_path":"/healthz"},
+  {"id":"openai","kind":"openai","name_key":"service.openai","default_port":8000,"health_path":"/v1/models"},
+  {"id":"lmstudio","kind":"openai","name_key":"service.lmstudio","default_port":1234,"health_path":"/v1/models"}
+]

@@ -1,0 +1,45 @@
+name: gpu-ai-hub
+services:
+  hub:
+    build: .
+    restart: unless-stopped
+    environment:
+      HUB_HOSTNAME: ${HUB_HOSTNAME:-ai-tool-hub.local}
+      HUB_LOCALE: ${HUB_LOCALE:-en}
+      HUB_ADMIN_USER: ${HUB_ADMIN_USER:-admin}
+      HUB_ADMIN_PASSWORD: ${HUB_ADMIN_PASSWORD:-}
+      HUB_DISCOVERY_NETWORKS: ${HUB_DISCOVERY_NETWORKS:-192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,100.64.0.0/10}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      SEARXNG_BASE_URL: ${SEARXNG_BASE_URL:-}
+      HUB_SESSION_TTL_HOURS: ${HUB_SESSION_TTL_HOURS:-24}
+      HUB_DATA_DIR: /data
+      HUB_MDNS_ADDRESS: ${HUB_MDNS_ADDRESS:-}
+    volumes: ["${HUB_DATA_DIR:-./data}:/data"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    expose: ["8000"]
+  gateway:
+    image: ${CADDY_IMAGE:-caddy:2-alpine}
+    restart: unless-stopped
+    depends_on: [hub]
+    ports: ["${HUB_PUBLIC_PORT:-80}:80"]
+    volumes: ["./caddy/Caddyfile:/etc/caddy/Caddyfile:ro"]
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:latest}
+    profiles: ["ollama"]
+    restart: unless-stopped
+    volumes: ["ollama-data:/root/.ollama"]
+    ports: ["127.0.0.1:11434:11434"]
+  searxng:
+    image: ${SEARXNG_IMAGE:-searxng/searxng:latest}
+    profiles: ["research"]
+    restart: unless-stopped
+    ports: ["127.0.0.1:8080:8080"]
+  n8n:
+    image: ${N8N_IMAGE:-n8nio/n8n:latest}
+    profiles: ["automation"]
+    restart: unless-stopped
+    volumes: ["n8n-data:/home/node/.n8n"]
+    ports: ["127.0.0.1:5678:5678"]
+volumes:
+  ollama-data:
+  n8n-data:

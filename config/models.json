@@ -1,0 +1,18 @@
+{
+  "minimal":[
+    {"provider":"ollama","model":"qwen3.5:9b","purpose":"chat","min_memory_gib":12},
+    {"provider":"ollama","model":"nomic-embed-text","purpose":"embeddings","min_memory_gib":2}
+  ],
+  "recommended":[
+    {"provider":"ollama","model":"qwen3.5:9b","purpose":"chat","min_memory_gib":12},
+    {"provider":"ollama","model":"qwen2.5-coder:14b","purpose":"code","min_memory_gib":12},
+    {"provider":"ollama","model":"llava:7b","purpose":"vision","min_memory_gib":8},
+    {"provider":"ollama","model":"nomic-embed-text","purpose":"embeddings","min_memory_gib":2}
+  ],
+  "large":[
+    {"provider":"ollama","model":"qwen2.5-coder:32b-instruct-q4_K_S","purpose":"code","min_memory_gib":22},
+    {"provider":"ollama","model":"qwen3.5:9b","purpose":"chat","min_memory_gib":12},
+    {"provider":"ollama","model":"llava:13b","purpose":"vision","min_memory_gib":14},
+    {"provider":"ollama","model":"nomic-embed-text","purpose":"embeddings","min_memory_gib":2}
+  ]
+}
