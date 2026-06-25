@@ -196,16 +196,28 @@ async function creative() {
   const open = el("a", tr("creative.open"), "button");
   open.href = `${location.protocol}//${location.hostname}:8188/`;
   open.target = "_blank";
+  const setup = el("pre", "scripts/install-comfyui-nodes.sh\nscripts/pull-comfy-models.sh starter\nscripts/pull-comfy-models.sh 3d\nscripts/pull-comfy-models.sh video");
   const grid = el("div", undefined, "grid");
   const data = await api("/api/workflows");
+  const modelById = Object.fromEntries((data.models || []).map(model => [model.id, model]));
   data.workflows.forEach(workflow => {
     const download = el("a", tr("creative.download"), "button");
     download.href = "/workflows/" + encodeURIComponent(workflow.file);
-    const workflowCard = card(workflow.title, workflow.tier);
+    const details = el("div", undefined, "stack");
+    details.append(el("p", `${tr("creative.tier")}: ${workflow.tier}`));
+    if (workflow.nodes && workflow.nodes.length) details.append(el("p", `${tr("creative.nodes")}: ${workflow.nodes.join(", ")}`));
+    if (workflow.models && workflow.models.length) {
+      const names = workflow.models.map(id => {
+        const model = modelById[id];
+        return model ? `${id} -> ${model.target}` : id;
+      });
+      details.append(el("p", `${tr("creative.models_required")}:\n${names.join("\n")}`));
+    }
+    const workflowCard = card(workflow.title, details);
     workflowCard.append(download);
     grid.append(workflowCard);
   });
-  panel.append(open, el("p", tr("creative.models")), grid);
+  panel.append(open, el("p", tr("creative.models")), setup, grid);
   view.append(panel);
 }
 
@@ -316,6 +328,19 @@ async function queue() {
 async function setup() {
   const view = clear();
   const panel = formPanel(tr("nav.setup"));
+  const recommendation = await api("/api/model-recommendations");
+  const rec = el("div", undefined, "grid");
+  const modelList = el("ul");
+  recommendation.models.forEach(model => {
+    modelList.append(el("li", `${model.model} — ${model.purpose} (${model.min_memory_gib} GiB+)`));
+  });
+  rec.append(
+    card(tr("setup.recommended_profile"), `${recommendation.selected_profile}\n${recommendation.reason}`),
+    card(tr("setup.detected_device"), `${recommendation.device.name}\n${recommendation.device.backend}, ${recommendation.device.memory_gib} GiB`),
+    card(tr("setup.pull_command"), `${recommendation.pull_command}\n${recommendation.windows_pull_command}`),
+    card(tr("setup.recommended_models"), modelList)
+  );
+  const alternatives = el("pre", JSON.stringify(recommendation.alternatives.map(item => ({ profile: item.profile, fits: item.fits, required_gib: item.required_gib })), null, 2));
   const network = el("input");
   const output = el("div", undefined, "grid");
   const button = el("button", tr("common.discover"));
@@ -341,7 +366,7 @@ async function setup() {
     }
   };
   const models = await api("/api/models");
-  panel.append(network, button, output, el("h3", tr("setup.model_profiles")), el("pre", JSON.stringify(models, null, 2)));
+  panel.append(el("h3", tr("setup.model_recommendation")), rec, el("h3", tr("setup.profile_fit")), alternatives, network, button, output, el("h3", tr("setup.model_profiles")), el("pre", JSON.stringify(models, null, 2)));
   view.append(panel);
 }
 

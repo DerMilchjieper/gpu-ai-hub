@@ -47,7 +47,7 @@
         "Node name for S&R": "CheckpointLoaderSimple"
       },
       "widgets_values": [
-        "sdxl/juggernautXL_juggXIByRundiffusion.safetensors"
+        "sd_xl_base_1.0.safetensors"
       ]
     },
     {

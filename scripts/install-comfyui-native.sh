@@ -9,6 +9,7 @@ mkdir -p "$(dirname "$TARGET")"
 python3 -m venv "$TARGET/.venv"
 "$TARGET/.venv/bin/pip" install --upgrade pip comfy-cli
 (cd "$TARGET" && "$TARGET/.venv/bin/pip" install -r requirements.txt)
+"$ROOT/scripts/install-comfyui-nodes.sh" "$TARGET"
 mkdir -p "$TARGET/user/default/workflows"
 cp "$ROOT"/workflows/comfyui/*.json "$TARGET/user/default/workflows/"
 echo "Native ComfyUI installed in $TARGET"

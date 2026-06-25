@@ -1459,7 +1459,7 @@
         "cnr_id": "comfy-core"
       },
       "widgets_values": [
-        "FLUX/flux1-dev-fp8.safetensors"
+        "sd_xl_base_1.0.safetensors"
       ]
     },
     {
@@ -1718,7 +1718,7 @@
         123456789,
         "randomize",
         24,
-        1.0,
+        5.5,
         "euler",
         "simple",
         1.0

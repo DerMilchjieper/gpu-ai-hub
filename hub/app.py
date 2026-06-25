@@ -110,6 +110,10 @@ def dashboard(_=Depends(current_session)):
 def get_hardware(_=Depends(current_session)):return hardware.inventory()
 @app.get("/api/models")
 def models(_=Depends(current_session)):return load_json("config/models.json")
+@app.get("/api/model-recommendations")
+def model_recommendations(_=Depends(current_session)):
+    inv=hardware.inventory()
+    return hardware.model_recommendations(inv,load_json("config/models.json"))
 @app.get("/api/workflows")
 def workflows(_=Depends(current_session)):return load_json("config/comfyui.json")
 @app.get("/workflows/{filename}")

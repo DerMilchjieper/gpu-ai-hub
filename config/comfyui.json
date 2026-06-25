@@ -1,20 +1,236 @@
 {
-  "workflows": [
-    {"id":"text-to-image-sdxl","file":"text_to_image_sdxl.json","tier":"starter","title":"SDXL text to image"},
-    {"id":"stable-fast-3d","file":"stable_fast_3d_image_to_3d.json","tier":"3d","title":"Stable Fast 3D"},
-    {"id":"triposr","file":"triposr_image_to_3d.json","tier":"3d","title":"TripoSR image to 3D"},
-    {"id":"text-sf3d","file":"text_to_image_to_sf3d_glb.json","tier":"3d","title":"Text to SF3D GLB"},
-    {"id":"text-triposr","file":"text_to_image_to_triposr_3d.json","tier":"3d","title":"Text to TripoSR 3D"},
-    {"id":"wan-i2v","file":"text_to_image_to_wan_i2v_video.json","tier":"large","title":"Text to Wan image-to-video"},
-    {"id":"video-upscale","file":"video_upscale_2x_lanczos.json","tier":"starter","title":"Video upscale 2x"}
-  ],
+  "model_policy": "Model binaries are downloaded separately after license acceptance; they are never committed. Starter workflows are designed around SDXL Base where possible.",
   "custom_nodes": [
-    "https://github.com/kijai/ComfyUI-KJNodes",
-    "https://github.com/kijai/ComfyUI-WanVideoWrapper",
-    "https://github.com/flowtyone/ComfyUI-Flowty-TripoSR",
-    "https://github.com/yolain/ComfyUI-Easy-Use",
-    "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite",
-    "https://github.com/Stability-AI/stable-fast-3d"
+    {
+      "id": "manager",
+      "repo": "https://github.com/ltdrdata/ComfyUI-Manager",
+      "dir": "ComfyUI-Manager",
+      "ref": "main",
+      "provides": [
+        "Manager UI"
+      ]
+    },
+    {
+      "id": "kjnodes",
+      "repo": "https://github.com/kijai/ComfyUI-KJNodes",
+      "dir": "ComfyUI-KJNodes",
+      "ref": "588badc5252c2b483c8b37110f155973cf39e325",
+      "provides": [
+        "GetImageSizeAndCount",
+        "CreateCFGScheduleFloatList",
+        "INTConstant"
+      ]
+    },
+    {
+      "id": "wanvideo",
+      "repo": "https://github.com/kijai/ComfyUI-WanVideoWrapper",
+      "dir": "ComfyUI-WanVideoWrapper",
+      "ref": "088128b224242e110d3906c6750e9a3a348a659b",
+      "provides": [
+        "WanVideoModelLoader",
+        "WanVideoVAELoader",
+        "WanVideoSampler",
+        "WanVideoDecode",
+        "WanVideoLoraSelect",
+        "WanVideoBlockSwap"
+      ]
+    },
+    {
+      "id": "triposr",
+      "repo": "https://github.com/flowtyone/ComfyUI-Flowty-TripoSR",
+      "dir": "ComfyUI-Flowty-TripoSR",
+      "ref": "a0c94ac60a7cc062604f61aeeea6d0d493521de3",
+      "provides": [
+        "TripoSRModelLoader",
+        "TripoSRSampler",
+        "TripoSRViewer",
+        "TripoSRSaveMesh"
+      ]
+    },
+    {
+      "id": "easyuse",
+      "repo": "https://github.com/yolain/ComfyUI-Easy-Use",
+      "dir": "ComfyUI-Easy-Use",
+      "ref": "54d080bf6a4f52da287e984f305243c10db097f5",
+      "provides": [
+        "easy imageRemBg"
+      ]
+    },
+    {
+      "id": "vhs",
+      "repo": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite",
+      "dir": "ComfyUI-VideoHelperSuite",
+      "ref": "4ee72c065db22c9d96c2427954dc69e7b908444b",
+      "provides": [
+        "VHS_LoadVideo",
+        "VHS_VideoCombine"
+      ]
+    },
+    {
+      "id": "sf3d",
+      "repo": "https://github.com/Stability-AI/stable-fast-3d",
+      "dir": "stable-fast-3d",
+      "ref": "ff21fc491b4dc5314bf6734c7c0dabd86b5f5bb2",
+      "provides": [
+        "StableFast3DLoader",
+        "StableFast3DSampler",
+        "StableFast3DSave",
+        "StableFast3DPreview",
+        "StableFast3DSaveTextures"
+      ]
+    }
   ],
-  "model_policy": "Models are downloaded separately after license acceptance; model binaries are never committed."
+  "models": [
+    {
+      "id": "sdxl-base",
+      "tier": "starter",
+      "repo": "stabilityai/stable-diffusion-xl-base-1.0",
+      "file": "sd_xl_base_1.0.safetensors",
+      "target": "checkpoints/sd_xl_base_1.0.safetensors",
+      "license": "Stability AI SDXL license"
+    },
+    {
+      "id": "triposr",
+      "tier": "3d",
+      "repo": "stabilityai/TripoSR",
+      "file": "model.ckpt",
+      "target": "checkpoints/TripoSR/model.ckpt",
+      "license": "TripoSR model license"
+    },
+    {
+      "id": "rmbg-2",
+      "tier": "3d",
+      "repo": "briaai/RMBG-2.0",
+      "file": "model.safetensors",
+      "target": "rembg/RMBG-2.0/model.safetensors",
+      "license": "BRIA RMBG-2.0 license"
+    },
+    {
+      "id": "wan-vae",
+      "tier": "video",
+      "manual": true,
+      "target": "vae/wan_2.1_vae.safetensors",
+      "note": "WanVideo VAE. Download location depends on the accepted Wan model package."
+    },
+    {
+      "id": "wan-high-noise",
+      "tier": "video",
+      "manual": true,
+      "target": "unet/wan2.2/HighNoise/Wan2.2-I2V-A14B-HighNoise-Q3_K_M.gguf",
+      "note": "Large/gated Wan2.2 GGUF file. User must accept the upstream license and place it at this path."
+    },
+    {
+      "id": "wan-low-noise",
+      "tier": "video",
+      "manual": true,
+      "target": "unet/wan2.2/LowNoise/Wan2.2-I2V-A14B-LowNoise-Q3_K_M.gguf",
+      "note": "Large/gated Wan2.2 GGUF file. User must accept the upstream license and place it at this path."
+    },
+    {
+      "id": "wan-lora-high",
+      "tier": "video",
+      "manual": true,
+      "target": "loras/wan2.2/wan2.2_i2v_A14b_high_noise_lora_rank64_lightx2v_4step_1022.safetensors",
+      "note": "Workflow acceleration LoRA. User must accept the upstream license and place it at this path."
+    },
+    {
+      "id": "wan-lora-low",
+      "tier": "video",
+      "manual": true,
+      "target": "loras/wan2.2/wan2.2_i2v_A14b_low_noise_lora_rank64_lightx2v_4step_1022.safetensors",
+      "note": "Workflow acceleration LoRA. User must accept the upstream license and place it at this path."
+    }
+  ],
+  "workflows": [
+    {
+      "id": "text-to-image-sdxl",
+      "file": "text_to_image_sdxl.json",
+      "tier": "starter",
+      "title": "SDXL text to image",
+      "nodes": [
+        "core"
+      ],
+      "models": [
+        "sdxl-base"
+      ]
+    },
+    {
+      "id": "video-upscale",
+      "file": "video_upscale_2x_lanczos.json",
+      "tier": "starter",
+      "title": "Video upscale 2x",
+      "nodes": [
+        "vhs"
+      ],
+      "models": []
+    },
+    {
+      "id": "stable-fast-3d",
+      "file": "stable_fast_3d_image_to_3d.json",
+      "tier": "3d",
+      "title": "Stable Fast 3D",
+      "nodes": [
+        "sf3d"
+      ],
+      "models": []
+    },
+    {
+      "id": "triposr",
+      "file": "triposr_image_to_3d.json",
+      "tier": "3d",
+      "title": "TripoSR image to 3D",
+      "nodes": [
+        "triposr"
+      ],
+      "models": [
+        "triposr"
+      ]
+    },
+    {
+      "id": "text-sf3d",
+      "file": "text_to_image_to_sf3d_glb.json",
+      "tier": "3d",
+      "title": "Text to SF3D GLB",
+      "nodes": [
+        "easyuse",
+        "sf3d"
+      ],
+      "models": [
+        "sdxl-base",
+        "rmbg-2"
+      ]
+    },
+    {
+      "id": "text-triposr",
+      "file": "text_to_image_to_triposr_3d.json",
+      "tier": "3d",
+      "title": "Text to TripoSR 3D",
+      "nodes": [
+        "triposr"
+      ],
+      "models": [
+        "sdxl-base",
+        "triposr"
+      ]
+    },
+    {
+      "id": "wan-i2v",
+      "file": "text_to_image_to_wan_i2v_video.json",
+      "tier": "video",
+      "title": "Text to Wan image-to-video",
+      "nodes": [
+        "kjnodes",
+        "wanvideo",
+        "vhs"
+      ],
+      "models": [
+        "sdxl-base",
+        "wan-vae",
+        "wan-high-noise",
+        "wan-low-noise",
+        "wan-lora-high",
+        "wan-lora-low"
+      ]
+    }
+  ]
 }

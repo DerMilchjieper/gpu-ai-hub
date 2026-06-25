@@ -25,6 +25,7 @@ entrypoint.
 - service registry and opt-in private-/24 network discovery
 - NVIDIA, AMD ROCm, and Apple Silicon hardware probes
 - topology recommendations for single, homogeneous, and mixed accelerators
+- model recommendations based on detected VRAM, Apple unified memory, or CPU-only hosts
 - persistent SQLite jobs with leases and scheduling-mode metadata
 - Ollama job execution and remote worker heartbeats
 - model profiles with explicit pull commands
@@ -36,6 +37,11 @@ entrypoint.
 
 ## Install
 
+The goal is a beginner-friendly setup: clone the repository, run the installer,
+answer the download prompts, then open the local web UI. The installer starts
+the hub and optional services, installs the ComfyUI custom nodes, and offers to
+download the starter model files needed by the bundled workflows.
+
 ### Linux and macOS
 
 ```bash
@@ -44,12 +50,24 @@ cd gpu-ai-hub
 ./scripts/install.sh
 ```
 
+If something does not start, run:
+
+```bash
+./scripts/doctor.sh
+```
+
 ### Windows
 
 Install Docker Desktop, clone the repository, then run:
 
 ```powershell
 .\scripts\install.ps1
+```
+
+If something does not start, run:
+
+```powershell
+.\scripts\doctor.ps1
 ```
 
 The preferred LAN URL is:
@@ -61,6 +79,14 @@ http://ai-tool-hub.local/
 The installer also prints an IP-based fallback. The generated initial admin
 password is available through `docker compose logs hub`.
 
+For the full beginner setup, accept the prompts for:
+
+- bundled Ollama, unless you already run Ollama locally;
+- the full tool pack;
+- starter Ollama chat models;
+- the ComfyUI starter model;
+- the ComfyUI 3D helper models.
+
 ### Models
 
 ```bash
@@ -69,8 +95,33 @@ password is available through `docker compose logs hub`.
 ./scripts/pull-models.sh large
 ```
 
-Model downloads are deliberately separate because hardware, disk space, and
-licenses differ.
+Model downloads are deliberately prompted because hardware, disk space,
+bandwidth, and licenses differ. The installer can run the starter downloads for
+the user; the scripts below are useful when adding models later.
+
+After login, open **Setup**. The hub shows a recommended Ollama profile based on
+the detected GPU/VRAM, Apple Silicon unified memory, or CPU-only system. It also
+prints the matching Linux/macOS and Windows pull command.
+
+ComfyUI custom nodes are installed by the creative Docker image. For native
+ComfyUI installs, run:
+
+```bash
+./scripts/install-comfyui-nodes.sh
+```
+
+The included ComfyUI workflows have an explicit dependency matrix in
+`config/comfyui.json`. Pull the known starter and 3D files with:
+
+```bash
+./scripts/pull-comfy-models.sh list
+./scripts/pull-comfy-models.sh starter
+./scripts/pull-comfy-models.sh 3d
+```
+
+The Wan image-to-video workflow uses very large/gated upstream model files.
+`./scripts/pull-comfy-models.sh video` prints the exact target paths after the
+user has accepted the upstream licenses.
 
 The full installer asks once before enabling the creative, speech, research,
 and automation profiles. NVIDIA hosts use the GPU Compose overlay. Apple
