@@ -1,24 +1,392 @@
-const state={t:{},user:null,csrf:null,view:"dashboard"};
-const $=s=>document.querySelector(s);const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n};
-async function api(path,opts={}){opts.headers={...(opts.headers||{})};if(state.csrf)opts.headers["X-CSRF-Token"]=state.csrf;if(opts.body&&typeof opts.body!=="string"){opts.headers["Content-Type"]="application/json";opts.body=JSON.stringify(opts.body)}const r=await fetch(path,opts);if(r.status===401){showLogin();throw new Error("Authentication required")}const data=await r.json();if(!r.ok)throw new Error(data.detail||r.statusText);return data}
-function tr(k){return state.t[k]||k}function clear(){const v=$("#view");v.replaceChildren();return v}
-function showLogin(){$("#login").hidden=false;$("#workspace").hidden=true;$("#logout").hidden=true}
-function showWorkspace(){$("#login").hidden=true;$("#workspace").hidden=false;$("#logout").hidden=false;renderNav();render()}
-function renderNav(){const nav=$("#nav");nav.replaceChildren();["dashboard","chat","compare","research","creative","notes","calendar","services","queue","setup"].forEach(id=>{const a=el("a",tr("nav."+id));a.href="#"+id;a.className=id===state.view?"active":"";a.onclick=e=>{e.preventDefault();state.view=id;location.hash=id;renderNav();render()};nav.append(a)})}
-function card(title,value){const c=el("div",undefined,"card");c.append(el("h3",title),typeof value==="string"?el("p",value):value);return c}
-async function dashboard(){const d=await api("/api/dashboard"),v=clear(),g=el("div",undefined,"grid");const hw=d.hardware,acc=hw.accelerators.map(x=>x.name+" · "+Math.round(x.memory_mib/1024)+" GiB").join("\n")||"CPU";g.append(card(tr("dashboard.hardware"),hw.system+" "+hw.machine+"\n"+acc),card(tr("dashboard.topology"),hw.recommendation.topology+" — "+hw.recommendation.reason),card(tr("dashboard.services"),String(d.services.length)),card(tr("dashboard.jobs"),String(d.jobs.length)));v.append(g)}
-function formPanel(title){const p=el("section",undefined,"panel stack");p.append(el("h2",title));return p}
-async function chat(){const v=clear(),p=formPanel(tr("nav.chat")),model=el("input");model.placeholder=tr("common.model");model.value="qwen3.5:9b";const prompt=el("textarea");prompt.placeholder=tr("common.prompt");const out=el("pre","");const b=el("button",tr("common.send"));b.onclick=async()=>{b.disabled=true;try{const r=await api("/api/chat",{method:"POST",body:{prompt:prompt.value,model:model.value}});out.textContent=r.response||r.thinking}catch(e){out.textContent=e.message}finally{b.disabled=false}};p.append(model,prompt,b,out);v.append(p)}
-async function compare(){const v=clear(),p=formPanel(tr("nav.compare")),models=el("input");models.value="qwen3.5:9b,qwen2.5-coder:14b";const prompt=el("textarea"),out=el("div",undefined,"grid"),b=el("button",tr("common.compare"));b.onclick=async()=>{out.replaceChildren();const targets=models.value.split(",").map(model=>({model:model.trim()}));for(const r of await api("/api/compare",{method:"POST",body:{prompt:prompt.value,targets}}))out.append(card(r.model,r.response||r.error||""))};p.append(models,prompt,b,out);v.append(p)}
-async function research(){const v=clear(),p=formPanel(tr("nav.research")),q=el("input"),out=el("div",undefined,"stack"),b=el("button",tr("common.search"));b.onclick=async()=>{out.replaceChildren();try{const r=await api("/api/research",{method:"POST",body:{query:q.value}});r.results.forEach(x=>{const a=el("a",x.title);a.href=x.url;a.target="_blank";out.append(card("",a),el("p",x.content||""))})}catch(e){out.append(el("p",e.message))}};p.append(q,b,out);v.append(p)}
-async function creative(){const v=clear(),p=formPanel(tr("nav.creative")),open=el("a",tr("creative.open"),"button");open.href=location.protocol+"//"+location.hostname+":8188/";open.target="_blank";const grid=el("div",undefined,"grid"),data=await api("/api/workflows");data.workflows.forEach(x=>{const a=el("a",tr("creative.download"),"button");a.href="/workflows/"+encodeURIComponent(x.file);const c=card(x.title,x.tier);c.append(a);grid.append(c)});p.append(open,el("p",tr("creative.models")),grid);v.append(p)}
-async function notes(){const v=clear(),g=el("div",undefined,"grid");for(const kind of ["notes","tasks"]){const p=formPanel(tr(kind==="notes"?"nav.notes":"nav.notes")),title=el("input"),detail=el("textarea"),list=el("div"),b=el("button",tr("common.add"));b.onclick=async()=>{await api("/api/"+kind,{method:"POST",body:kind==="notes"?{title:title.value,body:detail.value}:{title:title.value,detail:detail.value}});render()};const data=await api("/api/"+kind);data.forEach(x=>{const item=el("div",undefined,"item");item.append(el("strong",x.title),el("p",x.body||x.detail||""));const del=el("button",tr("common.delete"),"danger");del.onclick=async()=>{await api("/api/"+kind+"/"+x.id,{method:"DELETE"});render()};item.append(del);list.append(item)});p.append(title,detail,b,list);g.append(p)}v.append(g)}
-async function calendar(){const v=clear(),p=formPanel(tr("nav.calendar")),title=el("input"),start=el("input");start.type="datetime-local";const b=el("button",tr("common.add")),list=el("div");b.onclick=async()=>{await api("/api/events",{method:"POST",body:{title:title.value,starts_at:new Date(start.value).getTime()/1000}});render()};(await api("/api/events")).forEach(x=>list.append(card(x.title,new Date(x.starts_at*1000).toLocaleString())));p.append(title,start,b,list);v.append(p)}
-async function services(){const v=clear(),p=formPanel(tr("nav.services")),name=el("input"),kind=el("input"),url=el("input"),b=el("button",tr("common.add")),list=el("div");name.placeholder=tr("service.name");kind.placeholder=tr("service.kind");url.placeholder=tr("service.url");b.onclick=async()=>{await api("/api/services",{method:"POST",body:{name:name.value,kind:kind.value,base_url:url.value}});render()};(await api("/api/services")).forEach(x=>{const i=el("div",undefined,"item");const a=el("a",x.name+" · "+x.kind+" · "+(x.last_status||"unknown"));a.href=x.base_url;a.target="_blank";i.append(a);list.append(i)});p.append(name,kind,url,b,list);v.append(p)}
-async function queue(){const v=clear(),p=formPanel(tr("nav.queue")),model=el("input"),prompt=el("textarea"),mode=el("select");model.value="qwen3.5:9b";["auto","sequential","parallel","broadcast","pipeline","gang"].forEach(x=>mode.append(el("option",x)));const b=el("button",tr("queue.submit")),list=el("div");b.onclick=async()=>{await api("/api/jobs",{method:"POST",body:{kind:"ollama.generate",mode:mode.value,payload:{model:model.value,prompt:prompt.value}}});setTimeout(render,500)};(await api("/api/jobs")).forEach(x=>list.append(card(x.kind+" · "+x.status,x.result_summary||x.error||x.id)));p.append(model,prompt,mode,b,list);v.append(p)}
-async function setup(){const v=clear(),p=formPanel(tr("nav.setup")),network=el("input"),out=el("div",undefined,"grid"),b=el("button",tr("common.discover"));network.placeholder="192.168.1.0/24";b.onclick=async()=>{out.replaceChildren();try{const found=await api("/api/discovery/scan",{method:"POST",body:{network:network.value}});if(!found.length)out.append(el("p",tr("common.no_services")));found.forEach(x=>{const c=card(x.kind,x.base_url+" · HTTP "+x.status_code),add=el("button",tr("common.add"));add.onclick=async()=>{await api("/api/services",{method:"POST",body:{name:x.name,kind:x.kind,base_url:x.base_url}});add.disabled=true;add.textContent=tr("common.added")};c.append(add);out.append(c)})}catch(e){out.append(el("p",e.message))}};const models=await api("/api/models");p.append(network,b,out,el("h3",tr("setup.model_profiles")),el("pre",JSON.stringify(models,null,2)));v.append(p)}
-async function render(){const fn={dashboard,chat,compare,research,creative,notes,calendar,services,queue,setup}[state.view]||dashboard;try{await fn()}catch(e){clear().append(el("p",e.message))}}
-async function boot(){state.view=location.hash.slice(1)||"dashboard";const b=await api("/api/bootstrap");state.t=b.translations;state.user=b.user;$("#logout").textContent=tr("common.logout");$("#username").placeholder=tr("auth.username");$("#password").placeholder=tr("auth.password");$("#loginSubmit").textContent=tr("auth.submit");if(b.user){state.csrf=b.user.csrf_token;$("#title").textContent=tr("app.title");$("#subtitle").textContent=tr("app.subtitle");showWorkspace()}else showLogin()}
-$("#loginForm").onsubmit=async e=>{e.preventDefault();try{const r=await api("/api/auth/login",{method:"POST",body:{username:$("#username").value,password:$("#password").value}});state.user=r;state.csrf=r.csrf_token;boot()}catch(err){$("#loginError").textContent=err.message}};
-$("#logout").onclick=async()=>{await api("/api/auth/logout",{method:"POST"});state.user=null;state.csrf=null;showLogin()};
+const state = { t: {}, user: null, csrf: null, view: "dashboard", locale: "en", locales: ["en"] };
+const localeNames = { en: "English", de: "Deutsch", es: "Español", fr: "Français" };
+const $ = selector => document.querySelector(selector);
+const el = (tag, text, cls) => {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = text;
+  if (cls) node.className = cls;
+  return node;
+};
+const tr = key => state.t[key] || key;
+const preferredLocale = () => localStorage.getItem("hub.locale") || navigator.language || "en";
+
+async function api(path, opts = {}) {
+  opts.headers = { ...(opts.headers || {}) };
+  if (state.csrf) opts.headers["X-CSRF-Token"] = state.csrf;
+  if (opts.body && typeof opts.body !== "string") {
+    opts.headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(opts.body);
+  }
+  const response = await fetch(path, opts);
+  if (response.status === 401) {
+    showLogin();
+    throw new Error(tr("error.auth_required"));
+  }
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || response.statusText);
+  return data;
+}
+
+function clear() {
+  const view = $("#view");
+  view.replaceChildren();
+  return view;
+}
+
+function applyStaticText() {
+  document.documentElement.lang = state.locale;
+  document.title = tr("app.title");
+  $("#brand").textContent = tr("app.title");
+  $("#loginTitle").textContent = tr("app.title");
+  $("#logout").textContent = tr("common.logout");
+  $("#username").placeholder = tr("auth.username");
+  $("#password").placeholder = tr("auth.password");
+  $("#loginSubmit").textContent = tr("auth.submit");
+  $("#title").textContent = tr("app.title");
+  $("#subtitle").textContent = tr("app.subtitle");
+  renderLocalePicker();
+}
+
+function renderLocalePicker() {
+  const select = $("#locale");
+  select.replaceChildren();
+  state.locales.forEach(locale => {
+    const option = el("option", localeNames[locale] || locale);
+    option.value = locale;
+    option.selected = locale === state.locale;
+    select.append(option);
+  });
+  select.title = tr("common.language");
+  select.hidden = state.locales.length < 2;
+}
+
+function showLogin() {
+  $("#login").hidden = false;
+  $("#workspace").hidden = true;
+  $("#logout").hidden = true;
+}
+
+function showWorkspace() {
+  $("#login").hidden = true;
+  $("#workspace").hidden = false;
+  $("#logout").hidden = false;
+  renderNav();
+  render();
+}
+
+function renderNav() {
+  const nav = $("#nav");
+  nav.replaceChildren();
+  ["dashboard", "chat", "compare", "research", "creative", "notes", "calendar", "services", "queue", "setup"].forEach(id => {
+    const link = el("a", tr("nav." + id));
+    link.href = "#" + id;
+    link.className = id === state.view ? "active" : "";
+    link.onclick = event => {
+      event.preventDefault();
+      state.view = id;
+      location.hash = id;
+      renderNav();
+      render();
+    };
+    nav.append(link);
+  });
+}
+
+function card(title, value) {
+  const container = el("div", undefined, "card");
+  container.append(el("h3", title), typeof value === "string" ? el("p", value) : value);
+  return container;
+}
+
+function formPanel(title) {
+  const panel = el("section", undefined, "panel stack");
+  panel.append(el("h2", title));
+  return panel;
+}
+
+async function dashboard() {
+  const data = await api("/api/dashboard");
+  const view = clear();
+  const grid = el("div", undefined, "grid");
+  const hardware = data.hardware;
+  const accelerators = hardware.accelerators.map(item => `${item.name} · ${Math.round(item.memory_mib / 1024)} GiB`).join("\n") || tr("hardware.cpu_only");
+  grid.append(
+    card(tr("dashboard.hardware"), `${hardware.system} ${hardware.machine}\n${accelerators}`),
+    card(tr("dashboard.topology"), `${hardware.recommendation.topology} — ${hardware.recommendation.reason}`),
+    card(tr("dashboard.services"), String(data.services.length)),
+    card(tr("dashboard.jobs"), String(data.jobs.length))
+  );
+  view.append(grid);
+}
+
+async function chat() {
+  const view = clear();
+  const panel = formPanel(tr("nav.chat"));
+  const model = el("input");
+  model.placeholder = tr("common.model");
+  model.value = "qwen3.5:9b";
+  const prompt = el("textarea");
+  prompt.placeholder = tr("common.prompt");
+  const output = el("pre", "");
+  const button = el("button", tr("common.send"));
+  button.onclick = async () => {
+    button.disabled = true;
+    try {
+      const response = await api("/api/chat", { method: "POST", body: { prompt: prompt.value, model: model.value } });
+      output.textContent = response.response || response.thinking;
+    } catch (error) {
+      output.textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  };
+  panel.append(model, prompt, button, output);
+  view.append(panel);
+}
+
+async function compare() {
+  const view = clear();
+  const panel = formPanel(tr("nav.compare"));
+  const models = el("input");
+  models.placeholder = tr("compare.models_placeholder");
+  models.value = "qwen3.5:9b,qwen2.5-coder:14b";
+  const prompt = el("textarea");
+  prompt.placeholder = tr("common.prompt");
+  const output = el("div", undefined, "grid");
+  const button = el("button", tr("common.compare"));
+  button.onclick = async () => {
+    output.replaceChildren();
+    const targets = models.value.split(",").map(model => ({ model: model.trim() })).filter(item => item.model);
+    for (const response of await api("/api/compare", { method: "POST", body: { prompt: prompt.value, targets } })) {
+      output.append(card(response.model, response.response || response.error || ""));
+    }
+  };
+  panel.append(models, prompt, button, output);
+  view.append(panel);
+}
+
+async function research() {
+  const view = clear();
+  const panel = formPanel(tr("nav.research"));
+  const query = el("input");
+  query.placeholder = tr("research.query_placeholder");
+  const output = el("div", undefined, "stack");
+  const button = el("button", tr("common.search"));
+  button.onclick = async () => {
+    output.replaceChildren();
+    try {
+      const response = await api("/api/research", { method: "POST", body: { query: query.value } });
+      response.results.forEach(result => {
+        const link = el("a", result.title);
+        link.href = result.url;
+        link.target = "_blank";
+        output.append(card("", link), el("p", result.content || ""));
+      });
+    } catch (error) {
+      output.append(el("p", error.message));
+    }
+  };
+  panel.append(query, button, output);
+  view.append(panel);
+}
+
+async function creative() {
+  const view = clear();
+  const panel = formPanel(tr("nav.creative"));
+  const open = el("a", tr("creative.open"), "button");
+  open.href = `${location.protocol}//${location.hostname}:8188/`;
+  open.target = "_blank";
+  const grid = el("div", undefined, "grid");
+  const data = await api("/api/workflows");
+  data.workflows.forEach(workflow => {
+    const download = el("a", tr("creative.download"), "button");
+    download.href = "/workflows/" + encodeURIComponent(workflow.file);
+    const workflowCard = card(workflow.title, workflow.tier);
+    workflowCard.append(download);
+    grid.append(workflowCard);
+  });
+  panel.append(open, el("p", tr("creative.models")), grid);
+  view.append(panel);
+}
+
+async function notes() {
+  const view = clear();
+  const grid = el("div", undefined, "grid");
+  for (const kind of ["notes", "tasks"]) {
+    const panel = formPanel(tr(kind === "notes" ? "notes.title" : "tasks.title"));
+    const title = el("input");
+    title.placeholder = tr("common.title");
+    const detail = el("textarea");
+    detail.placeholder = tr(kind === "notes" ? "notes.body" : "tasks.detail");
+    const list = el("div");
+    const button = el("button", tr("common.add"));
+    button.onclick = async () => {
+      await api("/api/" + kind, { method: "POST", body: kind === "notes" ? { title: title.value, body: detail.value } : { title: title.value, detail: detail.value } });
+      render();
+    };
+    const data = await api("/api/" + kind);
+    data.forEach(item => {
+      const row = el("div", undefined, "item");
+      row.append(el("strong", item.title), el("p", item.body || item.detail || ""));
+      const del = el("button", tr("common.delete"), "danger");
+      del.onclick = async () => {
+        await api("/api/" + kind + "/" + item.id, { method: "DELETE" });
+        render();
+      };
+      row.append(del);
+      list.append(row);
+    });
+    panel.append(title, detail, button, list);
+    grid.append(panel);
+  }
+  view.append(grid);
+}
+
+async function calendar() {
+  const view = clear();
+  const panel = formPanel(tr("nav.calendar"));
+  const title = el("input");
+  title.placeholder = tr("common.title");
+  const start = el("input");
+  start.type = "datetime-local";
+  start.title = tr("calendar.starts_at");
+  const button = el("button", tr("common.add"));
+  const list = el("div");
+  button.onclick = async () => {
+    await api("/api/events", { method: "POST", body: { title: title.value, starts_at: new Date(start.value).getTime() / 1000 } });
+    render();
+  };
+  (await api("/api/events")).forEach(item => list.append(card(item.title, new Date(item.starts_at * 1000).toLocaleString(state.locale))));
+  panel.append(title, start, button, list);
+  view.append(panel);
+}
+
+async function services() {
+  const view = clear();
+  const panel = formPanel(tr("nav.services"));
+  const name = el("input");
+  const kind = el("input");
+  const url = el("input");
+  const button = el("button", tr("common.add"));
+  const list = el("div");
+  name.placeholder = tr("service.name");
+  kind.placeholder = tr("service.kind");
+  url.placeholder = tr("service.url");
+  button.onclick = async () => {
+    await api("/api/services", { method: "POST", body: { name: name.value, kind: kind.value, base_url: url.value } });
+    render();
+  };
+  (await api("/api/services")).forEach(service => {
+    const item = el("div", undefined, "item");
+    const link = el("a", `${service.name} · ${service.kind} · ${service.last_status || tr("status.unknown")}`);
+    link.href = service.base_url;
+    link.target = "_blank";
+    item.append(link);
+    list.append(item);
+  });
+  panel.append(name, kind, url, button, list);
+  view.append(panel);
+}
+
+async function queue() {
+  const view = clear();
+  const panel = formPanel(tr("nav.queue"));
+  const model = el("input");
+  model.placeholder = tr("common.model");
+  model.value = "qwen3.5:9b";
+  const prompt = el("textarea");
+  prompt.placeholder = tr("common.prompt");
+  const mode = el("select");
+  ["auto", "sequential", "parallel", "broadcast", "pipeline", "gang"].forEach(value => {
+    const option = el("option", tr("queue.mode." + value));
+    option.value = value;
+    mode.append(option);
+  });
+  const button = el("button", tr("queue.submit"));
+  const list = el("div");
+  button.onclick = async () => {
+    await api("/api/jobs", { method: "POST", body: { kind: "ollama.generate", mode: mode.value, payload: { model: model.value, prompt: prompt.value } } });
+    setTimeout(render, 500);
+  };
+  (await api("/api/jobs")).forEach(job => list.append(card(`${job.kind} · ${job.status}`, job.result_summary || job.error || job.id)));
+  panel.append(model, prompt, mode, button, list);
+  view.append(panel);
+}
+
+async function setup() {
+  const view = clear();
+  const panel = formPanel(tr("nav.setup"));
+  const network = el("input");
+  const output = el("div", undefined, "grid");
+  const button = el("button", tr("common.discover"));
+  network.placeholder = tr("setup.network_placeholder");
+  button.onclick = async () => {
+    output.replaceChildren();
+    try {
+      const found = await api("/api/discovery/scan", { method: "POST", body: { network: network.value } });
+      if (!found.length) output.append(el("p", tr("common.no_services")));
+      found.forEach(service => {
+        const serviceCard = card(service.kind, `${service.base_url} · HTTP ${service.status_code}`);
+        const add = el("button", tr("common.add"));
+        add.onclick = async () => {
+          await api("/api/services", { method: "POST", body: { name: service.name, kind: service.kind, base_url: service.base_url } });
+          add.disabled = true;
+          add.textContent = tr("common.added");
+        };
+        serviceCard.append(add);
+        output.append(serviceCard);
+      });
+    } catch (error) {
+      output.append(el("p", error.message));
+    }
+  };
+  const models = await api("/api/models");
+  panel.append(network, button, output, el("h3", tr("setup.model_profiles")), el("pre", JSON.stringify(models, null, 2)));
+  view.append(panel);
+}
+
+async function render() {
+  const fn = { dashboard, chat, compare, research, creative, notes, calendar, services, queue, setup }[state.view] || dashboard;
+  try {
+    await fn();
+  } catch (error) {
+    clear().append(el("p", error.message));
+  }
+}
+
+async function boot(locale = preferredLocale()) {
+  state.view = location.hash.slice(1) || "dashboard";
+  const bootstrap = await api("/api/bootstrap?locale=" + encodeURIComponent(locale));
+  state.t = bootstrap.translations;
+  state.locale = bootstrap.locale;
+  state.locales = bootstrap.available_locales || [bootstrap.locale];
+  state.user = bootstrap.user;
+  localStorage.setItem("hub.locale", state.locale);
+  applyStaticText();
+  if (bootstrap.user) {
+    state.csrf = bootstrap.user.csrf_token;
+    showWorkspace();
+  } else {
+    showLogin();
+  }
+}
+
+$("#locale").onchange = event => boot(event.target.value);
+$("#loginForm").onsubmit = async event => {
+  event.preventDefault();
+  try {
+    const response = await api("/api/auth/login", { method: "POST", body: { username: $("#username").value, password: $("#password").value } });
+    state.user = response;
+    state.csrf = response.csrf_token;
+    boot(state.locale);
+  } catch (error) {
+    $("#loginError").textContent = error.message;
+  }
+};
+$("#logout").onclick = async () => {
+  await api("/api/auth/logout", { method: "POST" });
+  state.user = null;
+  state.csrf = null;
+  showLogin();
+};
 boot();

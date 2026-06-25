@@ -2,10 +2,15 @@ import json,unittest
 from pathlib import Path
 ROOT=Path(__file__).parents[1]
 class ConfigTests(unittest.TestCase):
-    def test_english_is_the_only_locale(self):
+    def test_supported_locales_are_complete(self):
         locales=sorted(path.name for path in (ROOT/"locales").glob("*.json"))
-        self.assertEqual(locales,["en.json"])
-        self.assertTrue(json.loads((ROOT/"locales/en.json").read_text()))
+        self.assertEqual(locales,["de.json","en.json","es.json","fr.json"])
+        english=json.loads((ROOT/"locales/en.json").read_text())
+        self.assertTrue(english)
+        for locale in locales:
+            labels=json.loads((ROOT/"locales"/locale).read_text())
+            self.assertEqual(set(labels),set(english),locale)
+            self.assertTrue(all(isinstance(value,str) and value for value in labels.values()),locale)
     def test_service_ids_unique(self):
         services=json.loads((ROOT/"config/services.json").read_text())
         ids=[x["id"] for x in services]

@@ -22,5 +22,13 @@ settings=Settings()
 settings.data_dir.mkdir(parents=True,exist_ok=True)
 def load_json(relative:str):
     return json.loads((ROOT/relative).read_text(encoding="utf-8"))
-def translations()->dict[str,str]:
-    return json.loads((ROOT/"locales"/"en.json").read_text(encoding="utf-8"))
+SUPPORTED_LOCALES=("en","de","es","fr")
+def normalize_locale(locale:str|None)->str:
+    value=(locale or "en").split(",",1)[0].split("-",1)[0].strip().lower()
+    return value if value in SUPPORTED_LOCALES else "en"
+def translations(locale:str|None="en")->tuple[str,dict[str,str]]:
+    selected=normalize_locale(locale)
+    base=json.loads((ROOT/"locales"/"en.json").read_text(encoding="utf-8"))
+    if selected=="en":return selected,base
+    override=json.loads((ROOT/"locales"/f"{selected}.json").read_text(encoding="utf-8"))
+    return selected,{**base,**override}
