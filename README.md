@@ -3,6 +3,8 @@
 [![CI](https://github.com/DerMilchjieper/gpu-ai-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/DerMilchjieper/gpu-ai-hub/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
+![GPU AI Hub dashboard](docs/assets/screenshot-dashboard-hero.png)
+
 GPU AI Hub is a local-first AI workspace and accelerator control plane for a
 home network. It combines service discovery, hardware-aware placement,
 authenticated workspace tools, and a persistent job queue behind one browser
