@@ -9,7 +9,7 @@ from pydantic import BaseModel,Field
 from . import discovery,hardware,mdns,providers
 from .db import connect,initialize,password_ok,rows
 from .scheduler import scheduler
-from .settings import ROOT,load_json,settings,translations
+from .settings import ROOT,SUPPORTED_LOCALES,load_json,settings,translations
 
 STATIC=ROOT/"hub"/"static"
 
@@ -81,10 +81,11 @@ def css():return FileResponse(STATIC/"styles.css",media_type="text/css")
 def health():return {"status":"ok","version":"0.2.0-alpha.1"}
 
 @app.get("/api/bootstrap")
-def bootstrap(request:Request):
+def bootstrap(request:Request,locale:str|None=None):
     try:s=current_session(request);user={"username":s["username"],"is_admin":bool(s["is_admin"]),"csrf_token":s["csrf_token"]}
     except HTTPException:user=None
-    return {"hostname":settings.hostname,"locale":"en","translations":translations(),"user":user}
+    selected,labels=translations(locale or request.headers.get("Accept-Language"))
+    return {"hostname":settings.hostname,"locale":selected,"available_locales":list(SUPPORTED_LOCALES),"translations":labels,"user":user}
 
 @app.post("/api/auth/login")
 def login(payload:Login,response:Response):

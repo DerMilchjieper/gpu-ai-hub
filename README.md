@@ -17,7 +17,8 @@ entrypoint.
 
 ## Implemented alpha features
 
-- authenticated English-language LAN web workspace
+- authenticated LAN web workspace
+- localized UI foundation with English, German, Spanish, and French labels
 - chat through Ollama and side-by-side model comparison
 - SearXNG-backed research
 - notes, tasks, and calendar events
